@@ -360,7 +360,7 @@ namespace AICTrainer.ViewModels
                 switch (SelectedCategoryIndex)
                 {
                     case 0: // 全部
-                        total = 40;
+                        total = 41;
                         if (IsHpLocked) active++;
                         if (IsMpLocked) active++;
                         if (IsMpCrackLocked) active++;
@@ -395,6 +395,7 @@ namespace AICTrainer.ViewModels
                         if (IsSlotLocked) active++;
                         if (IsBreakFoodAttrLimit) active++;
                         if (IsMosaicDisabled) active++;
+                        if (IsDojoAlwaysWin) active++;
                         if (IsGoldLocked) active++;
                         if (IsCraftsLocked) active++;
                         if (IsJuiceLocked) active++;
@@ -449,12 +450,13 @@ namespace AICTrainer.ViewModels
                         if (IsAlwaysHungryBonus) active++;
                         return $"已激活 {active} / {total} 项";
                     case 7: // 辅助
-                        total = 5;
+                        total = 6;
                         if (IsSaveAnywhere) active++;
                         if (IsFreezeCountdown) active++;
                         if (IsSlotLocked) active++;
                         if (IsBreakFoodAttrLimit) active++;
                         if (IsMosaicDisabled) active++;
+                        if (IsDojoAlwaysWin) active++;
                         return $"已激活 {active} / {total} 项";
                     case 8: // 资产与货币
                         total = 6;
@@ -490,7 +492,7 @@ namespace AICTrainer.ViewModels
                 "Combat" => new[] { "OneHitKill", "ShieldBreak", "InstantMagicCharge", "NoBurstTired", "JustGuardNoHit", "ExtendedJustGuard" },
                 "Hazards" => new[] { "Worm", "Spike", "Thunder", "Drown", "Acid" },
                 "World" => new[] { "FastTravelAnytime", "FastTravelAnywhere", "Danger", "HungryBonus" },
-                "Utility" => new[] { "SaveAnywhere", "Countdown", "Slot", "BreakFood", "Mosaic" },
+                "Utility" => new[] { "SaveAnywhere", "Countdown", "Slot", "BreakFood", "Mosaic", "DojoAlwaysWin" },
                 "Currencies" => new[] { "Gold", "Crafts", "Juice", "BarScore", "GuildPoints", "Lanthanum" },
                 _ => Array.Empty<string>()
             };
@@ -573,7 +575,7 @@ namespace AICTrainer.ViewModels
                 "Vis_OneHitKill", "Vis_ShieldBreak", "Vis_InstantMagicCharge", "Vis_NoBurstTired", "Vis_JustGuardNoHit", "Vis_ExtendedJustGuard",
                 "Vis_Worm", "Vis_Spike", "Vis_Thunder", "Vis_Drown", "Vis_Acid",
                 "Vis_FastTravelAnytime", "Vis_FastTravelAnywhere", "Vis_Danger", "Vis_HungryBonus",
-                "Vis_SaveAnywhere", "Vis_Countdown", "Vis_Slot", "Vis_BreakFood", "Vis_Mosaic",
+                "Vis_SaveAnywhere", "Vis_Countdown", "Vis_Slot", "Vis_BreakFood", "Vis_Mosaic", "Vis_DojoAlwaysWin",
                 "Vis_Gold", "Vis_Crafts", "Vis_Juice", "Vis_BarScore", "Vis_GuildPoints", "Vis_Lanthanum"
             };
             foreach (var p in cardProps) OnPropertyChanged(p);
@@ -625,6 +627,7 @@ namespace AICTrainer.ViewModels
         public Visibility Vis_Slot => CardVis("Utility", "Slot");
         public Visibility Vis_BreakFood => CardVis("Utility", "BreakFood");
         public Visibility Vis_Mosaic => CardVis("Utility", "Mosaic");
+        public Visibility Vis_DojoAlwaysWin => CardVis("Utility", "DojoAlwaysWin");
 
         // 资产与货币类
         public Visibility Vis_Gold => CardVis("Currencies", "Gold");
@@ -874,6 +877,14 @@ namespace AICTrainer.ViewModels
         public string StarBg_Mosaic => StarBg("Mosaic");
         public string StarBorder_Mosaic => StarBorder("Mosaic");
 
+        public bool IsFav_DojoAlwaysWin => IsFav("DojoAlwaysWin");
+        public string StarChar_DojoAlwaysWin => StarChar("DojoAlwaysWin");
+        public string StarText_DojoAlwaysWin => StarText("DojoAlwaysWin");
+        public string StarColor_DojoAlwaysWin => StarColor("DojoAlwaysWin");
+        public string StarTextColor_DojoAlwaysWin => StarTextColor("DojoAlwaysWin");
+        public string StarBg_DojoAlwaysWin => StarBg("DojoAlwaysWin");
+        public string StarBorder_DojoAlwaysWin => StarBorder("DojoAlwaysWin");
+
         public bool IsFav_Gold => IsFav("Gold");
         public string StarChar_Gold => StarChar("Gold");
         public string StarText_Gold => StarText("Gold");
@@ -997,6 +1008,7 @@ namespace AICTrainer.ViewModels
 
         // 纯开关类
         public bool IsMosaicDisabled { get => Config.DisableMosaic; set { Config.DisableMosaic = value; OnPropertyChanged(); PushConfig(); } }
+        public bool IsDojoAlwaysWin { get => Config.DojoAlwaysWin; set { Config.DojoAlwaysWin = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsOneHitKill { get => Config.OneHitKill; set { Config.OneHitKill = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsShieldNeverBreak { get => Config.ShieldNeverBreak; set { Config.ShieldNeverBreak = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsInstantMagicCharge { get => Config.InstantMagicCharge; set { Config.InstantMagicCharge = value; OnPropertyChanged(); PushConfig(); } }

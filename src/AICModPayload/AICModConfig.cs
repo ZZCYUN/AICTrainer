@@ -81,7 +81,8 @@ namespace AICMod
                     LockGuildPoints = Current.LockGuildPoints,
                     TargetGuildPoints = Current.TargetGuildPoints,
                     LockLanthanum = Current.LockLanthanum,
-                    TargetLanthanum = Current.TargetLanthanum
+                    TargetLanthanum = Current.TargetLanthanum,
+                    DojoAlwaysWin = Current.DojoAlwaysWin
                 };
             }
         }

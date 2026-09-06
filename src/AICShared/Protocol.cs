@@ -160,6 +160,9 @@ namespace AICShared
 
         // 32. 展开护盾受到攻击就精准防御 (拉长时间)
         public bool ExtendedJustGuard;
+
+        // 33. 武馆小游戏必胜 (无论是否正确按正确判定)
+        public bool DojoAlwaysWin;
     }
 
     [Serializable]

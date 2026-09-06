@@ -32,7 +32,8 @@ namespace AICMod
                 typeof(Patches.MosaicPatch),
                 typeof(Patches.HazardPatch),
                 typeof(Patches.CombatPatch),
-                typeof(Patches.WorldPatch)
+                typeof(Patches.WorldPatch),
+                typeof(Patches.DojoPatch)
             };
 
             foreach (var patchClass in patchClasses)
