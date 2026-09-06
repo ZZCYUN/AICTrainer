@@ -304,6 +304,19 @@ namespace AICMod
                     }
                 }
             });
+
+            // 15. 精准防御状态维持 (展开即触发 / 举盾受击必定弹反)
+            SafeExecute("JustGuardLocks", () =>
+            {
+                if ((cfg.JustGuardNoHit || cfg.ExtendedJustGuard) && pr.Skill?.ShE?.Shield != null)
+                {
+                    pr.Skill.ShE.Shield.just_guard_enable = true;
+                    if (cfg.ExtendedJustGuard && pr.Skill.ShE.Shield.isActive())
+                    {
+                        ReflectionHelper.SetValue(pr.Skill.ShE.Shield, 10f, "t_justguard_prepare");
+                    }
+                }
+            });
         }
 
         private static void ApplyWorldLocks(NelM2DBase nm2d, ModConfigDto cfg)
@@ -381,6 +394,22 @@ namespace AICMod
                         else if (diff < 0)
                         {
                             inv.Reduce(NelItem.Lanthanum, -diff, -1, true);
+                        }
+                    }
+                }
+            });
+
+            // 全局/立绘马赛克动态实时管控
+            SafeExecute("DisableMosaic", () =>
+            {
+                if (cfg.DisableMosaic)
+                {
+                    var ui = UIBase.Instance;
+                    if (ui != null && ui.getCurrentPict(out var curPict) && curPict != null)
+                    {
+                        if (curPict.mosaic_enabled)
+                        {
+                            curPict.mosaic_enabled = false;
                         }
                     }
                 }

@@ -65,7 +65,23 @@ namespace AICMod
                     TargetGrip = Current.TargetGrip,
                     NoGripReduction = Current.NoGripReduction,
                     InfiniteJump = Current.InfiniteJump,
-                    ImmuneAbnormalStatus = Current.ImmuneAbnormalStatus
+                    ImmuneAbnormalStatus = Current.ImmuneAbnormalStatus,
+                    InstantMagicCharge = Current.InstantMagicCharge,
+                    NoBurstTired = Current.NoBurstTired,
+                    JustGuardNoHit = Current.JustGuardNoHit,
+                    ExtendedJustGuard = Current.ExtendedJustGuard,
+                    LockGold = Current.LockGold,
+                    TargetGold = Current.TargetGold,
+                    LockCrafts = Current.LockCrafts,
+                    TargetCrafts = Current.TargetCrafts,
+                    LockJuice = Current.LockJuice,
+                    TargetJuice = Current.TargetJuice,
+                    LockBarScore = Current.LockBarScore,
+                    TargetBarScore = Current.TargetBarScore,
+                    LockGuildPoints = Current.LockGuildPoints,
+                    TargetGuildPoints = Current.TargetGuildPoints,
+                    LockLanthanum = Current.LockLanthanum,
+                    TargetLanthanum = Current.TargetLanthanum
                 };
             }
         }

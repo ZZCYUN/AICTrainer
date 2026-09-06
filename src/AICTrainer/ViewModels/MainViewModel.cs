@@ -360,7 +360,7 @@ namespace AICTrainer.ViewModels
                 switch (SelectedCategoryIndex)
                 {
                     case 0: // 全部
-                        total = 37;
+                        total = 40;
                         if (IsHpLocked) active++;
                         if (IsMpLocked) active++;
                         if (IsMpCrackLocked) active++;
@@ -378,6 +378,9 @@ namespace AICTrainer.ViewModels
                         if (IsOneHitKill) active++;
                         if (IsShieldNeverBreak) active++;
                         if (IsInstantMagicCharge) active++;
+                        if (IsNoBurstTired) active++;
+                        if (IsJustGuardNoHit) active++;
+                        if (IsExtendedJustGuard) active++;
                         if (IsNoWormTrap) active++;
                         if (IsNoSpikeDamage) active++;
                         if (IsNoThunderDamage) active++;
@@ -422,10 +425,13 @@ namespace AICTrainer.ViewModels
                         if (IsInfiniteJump) active++;
                         return $"已激活 {active} / {total} 项";
                     case 4: // 战斗
-                        total = 3;
+                        total = 6;
                         if (IsOneHitKill) active++;
                         if (IsShieldNeverBreak) active++;
                         if (IsInstantMagicCharge) active++;
+                        if (IsNoBurstTired) active++;
+                        if (IsJustGuardNoHit) active++;
+                        if (IsExtendedJustGuard) active++;
                         return $"已激活 {active} / {total} 项";
                     case 5: // 环境
                         total = 5;
@@ -481,7 +487,7 @@ namespace AICTrainer.ViewModels
             {
                 "Survival" => new[] { "Hp", "Mp", "MpCrack", "Inventory", "MaxSatiety", "Satiety", "Ep", "ImmuneStatus" },
                 "Mobility" => new[] { "WalkSpeed", "RunSpeed", "Grip", "NoSlip", "Knockback", "InfiniteJump" },
-                "Combat" => new[] { "OneHitKill", "ShieldBreak", "InstantMagicCharge" },
+                "Combat" => new[] { "OneHitKill", "ShieldBreak", "InstantMagicCharge", "NoBurstTired", "JustGuardNoHit", "ExtendedJustGuard" },
                 "Hazards" => new[] { "Worm", "Spike", "Thunder", "Drown", "Acid" },
                 "World" => new[] { "FastTravelAnytime", "FastTravelAnywhere", "Danger", "HungryBonus" },
                 "Utility" => new[] { "SaveAnywhere", "Countdown", "Slot", "BreakFood", "Mosaic" },
@@ -564,7 +570,7 @@ namespace AICTrainer.ViewModels
             {
                 "Vis_Hp", "Vis_Mp", "Vis_MpCrack", "Vis_Inventory", "Vis_MaxSatiety", "Vis_Satiety", "Vis_Ep", "Vis_ImmuneStatus",
                 "Vis_WalkSpeed", "Vis_RunSpeed", "Vis_Grip", "Vis_NoSlip", "Vis_Knockback", "Vis_InfiniteJump",
-                "Vis_OneHitKill", "Vis_ShieldBreak", "Vis_InstantMagicCharge",
+                "Vis_OneHitKill", "Vis_ShieldBreak", "Vis_InstantMagicCharge", "Vis_NoBurstTired", "Vis_JustGuardNoHit", "Vis_ExtendedJustGuard",
                 "Vis_Worm", "Vis_Spike", "Vis_Thunder", "Vis_Drown", "Vis_Acid",
                 "Vis_FastTravelAnytime", "Vis_FastTravelAnywhere", "Vis_Danger", "Vis_HungryBonus",
                 "Vis_SaveAnywhere", "Vis_Countdown", "Vis_Slot", "Vis_BreakFood", "Vis_Mosaic",
@@ -596,6 +602,9 @@ namespace AICTrainer.ViewModels
         public Visibility Vis_OneHitKill => CardVis("Combat", "OneHitKill");
         public Visibility Vis_ShieldBreak => CardVis("Combat", "ShieldBreak");
         public Visibility Vis_InstantMagicCharge => CardVis("Combat", "InstantMagicCharge");
+        public Visibility Vis_NoBurstTired => CardVis("Combat", "NoBurstTired");
+        public Visibility Vis_JustGuardNoHit => CardVis("Combat", "JustGuardNoHit");
+        public Visibility Vis_ExtendedJustGuard => CardVis("Combat", "ExtendedJustGuard");
 
         // 地形免疫类
         public Visibility Vis_Worm => CardVis("Hazards", "Worm");
@@ -745,6 +754,27 @@ namespace AICTrainer.ViewModels
         public string StarTextColor_InstantMagicCharge => StarTextColor("InstantMagicCharge");
         public string StarBg_InstantMagicCharge => StarBg("InstantMagicCharge");
         public string StarBorder_InstantMagicCharge => StarBorder("InstantMagicCharge");
+        public bool IsFav_NoBurstTired => IsFav("NoBurstTired");
+        public string StarChar_NoBurstTired => StarChar("NoBurstTired");
+        public string StarText_NoBurstTired => StarText("NoBurstTired");
+        public string StarColor_NoBurstTired => StarColor("NoBurstTired");
+        public string StarTextColor_NoBurstTired => StarTextColor("NoBurstTired");
+        public string StarBg_NoBurstTired => StarBg("NoBurstTired");
+        public string StarBorder_NoBurstTired => StarBorder("NoBurstTired");
+        public bool IsFav_JustGuardNoHit => IsFav("JustGuardNoHit");
+        public string StarChar_JustGuardNoHit => StarChar("JustGuardNoHit");
+        public string StarText_JustGuardNoHit => StarText("JustGuardNoHit");
+        public string StarColor_JustGuardNoHit => StarColor("JustGuardNoHit");
+        public string StarTextColor_JustGuardNoHit => StarTextColor("JustGuardNoHit");
+        public string StarBg_JustGuardNoHit => StarBg("JustGuardNoHit");
+        public string StarBorder_JustGuardNoHit => StarBorder("JustGuardNoHit");
+        public bool IsFav_ExtendedJustGuard => IsFav("ExtendedJustGuard");
+        public string StarChar_ExtendedJustGuard => StarChar("ExtendedJustGuard");
+        public string StarText_ExtendedJustGuard => StarText("ExtendedJustGuard");
+        public string StarColor_ExtendedJustGuard => StarColor("ExtendedJustGuard");
+        public string StarTextColor_ExtendedJustGuard => StarTextColor("ExtendedJustGuard");
+        public string StarBg_ExtendedJustGuard => StarBg("ExtendedJustGuard");
+        public string StarBorder_ExtendedJustGuard => StarBorder("ExtendedJustGuard");
         public bool IsFav_Worm => IsFav("Worm");
         public string StarChar_Worm => StarChar("Worm");
         public string StarText_Worm => StarText("Worm");
@@ -970,6 +1000,9 @@ namespace AICTrainer.ViewModels
         public bool IsOneHitKill { get => Config.OneHitKill; set { Config.OneHitKill = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsShieldNeverBreak { get => Config.ShieldNeverBreak; set { Config.ShieldNeverBreak = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsInstantMagicCharge { get => Config.InstantMagicCharge; set { Config.InstantMagicCharge = value; OnPropertyChanged(); PushConfig(); } }
+        public bool IsNoBurstTired { get => Config.NoBurstTired; set { Config.NoBurstTired = value; OnPropertyChanged(); PushConfig(); } }
+        public bool IsJustGuardNoHit { get => Config.JustGuardNoHit; set { Config.JustGuardNoHit = value; OnPropertyChanged(); PushConfig(); } }
+        public bool IsExtendedJustGuard { get => Config.ExtendedJustGuard; set { Config.ExtendedJustGuard = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsFastTravelAnytime { get => Config.FastTravelAnytime; set { Config.FastTravelAnytime = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsFastTravelAnywhere { get => Config.FastTravelAnywhere; set { Config.FastTravelAnywhere = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsAlwaysHungryBonus { get => Config.AlwaysHungryBonus; set { Config.AlwaysHungryBonus = value; OnPropertyChanged(); PushConfig(); } }

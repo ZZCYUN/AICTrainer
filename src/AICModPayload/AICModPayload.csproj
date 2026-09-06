@@ -52,5 +52,9 @@
       <HintPath>C:\AliceInCradle\AliceInCradle_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="spine-unity">
+      <HintPath>C:\AliceInCradle\AliceInCradle_Data\Managed\spine-unity.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
 </Project>

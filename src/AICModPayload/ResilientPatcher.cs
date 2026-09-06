@@ -49,8 +49,9 @@ namespace AICMod
 
         private static void PatchClassSafely(Type patchClass)
         {
-            // 如果类声明了 TargetMethod，采用 Harmony 原生 CreateClassProcessor 安全处理
-            var targetMethodGetter = patchClass.GetMethod("TargetMethod", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            // 如果类声明了 TargetMethod 或 TargetMethods，采用 Harmony 原生 CreateClassProcessor 安全处理
+            var targetMethodGetter = patchClass.GetMethod("TargetMethod", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                                  ?? patchClass.GetMethod("TargetMethods", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
             if (targetMethodGetter != null)
             {
                 TotalPatches++;

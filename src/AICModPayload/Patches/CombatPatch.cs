@@ -115,5 +115,143 @@ namespace AICMod.Patches
                 __result = Math.Max(__result, 500f);
             }
         }
+
+        // 7. 圣光爆发不触发眩晕 (NoBurstTired)
+        // 7.1 计算眩晕概率始终归零 (UI与底层逻辑保持 0% 风险)
+        [HarmonyPatch(typeof(MDAT), "calcBurstFaintedRatio")]
+        [HarmonyPrefix]
+        public static bool Prefix_MDAT_calcBurstFaintedRatio(ref float __result)
+        {
+            if (AICModConfig.Current.NoBurstTired)
+            {
+                __result = 0f;
+                return false;
+            }
+            return true;
+        }
+
+        // 7.2 拦截向玩家施加 BURST_TIRED 与 OVERRUN_TIRED 状态
+        [HarmonyPatch(typeof(M2Ser), "Add", new[] { typeof(SER), typeof(int), typeof(int), typeof(bool) })]
+        [HarmonyPrefix]
+        public static bool Prefix_M2Ser_Add(M2Ser __instance, SER ser, ref M2SerItem? __result)
+        {
+            if (AICModConfig.Current.NoBurstTired && (ser == SER.BURST_TIRED || ser == SER.OVERRUN_TIRED))
+            {
+                if (__instance.Mv is PR)
+                {
+                    __result = null;
+                    return false; // 豁免圣光爆发带来的眩晕与力竭
+                }
+            }
+            return true;
+        }
+
+        // 7.3 爆发后清零魔力透支计数，并清除残余疲劳状态
+        [HarmonyPatch(typeof(M2PrSkill), "runBurst")]
+        [HarmonyPostfix]
+        public static void Postfix_M2PrSkill_runBurst(M2PrSkill __instance)
+        {
+            if (AICModConfig.Current.NoBurstTired && __instance != null)
+            {
+                __instance.mp_overused = 0f;
+                if (__instance.Pr?.Ser != null)
+                {
+                    __instance.Pr.Ser.Cure(SER.BURST_TIRED);
+                    __instance.Pr.Ser.Cure(SER.OVERRUN_TIRED);
+                    __instance.Pr.Ser.Cure(SER.FAINTED);
+                }
+            }
+        }
+
+        // =========================================================================
+        // =========================================================================
+        // 8. 展开护盾就触发精准防御 (无需受击 - JustGuardNoHit)
+        // =========================================================================
+        [HarmonyPatch(typeof(M2Shield), "activate", new[] { typeof(bool), typeof(bool) })]
+        [HarmonyPrefix]
+        public static void Prefix_M2Shield_activate(M2Shield __instance)
+        {
+            if (AICModConfig.Current.JustGuardNoHit && __instance != null && __instance.alpha <= 0f)
+            {
+                if (__instance.Mv is PR pr && pr.Skill?.ShE != null)
+                {
+                    // 展开护盾瞬间直接触发精准防御（视效/音效/慢镜头/居合反击就绪），无需受到任何敌方攻击
+                    pr.Skill.ShE.initJustGuard(null);
+                }
+            }
+        }
+
+        // =========================================================================
+        // 9. 展开护盾受到攻击就精准防御 (拉长时间 - ExtendedJustGuard)
+        // =========================================================================
+        [HarmonyPatch(typeof(M2Shield), "checkShield", new[] { typeof(AttackInfo), typeof(float), typeof(bool) })]
+        [HarmonyPostfix]
+        public static void Postfix_M2Shield_checkShield(M2Shield __instance, ref M2Shield.RESULT __result)
+        {
+            if (AICModConfig.Current.ExtendedJustGuard && __instance != null && __instance.isActive())
+            {
+                // 只要护盾处于展开/激活状态，受到任何攻击均判定为精准防御成功并弹反
+                __result = M2Shield.RESULT.GUARD_CONTINUE | M2Shield.RESULT._JUSTGUARD_SUCCESS;
+            }
+        }
+
+        // =========================================================================
+        // 10. 精准防御通用支持 (技能解锁与反击衔接优化)
+        // =========================================================================
+        // 10.1 豁免技能树解锁需求：强制允许居合闪避、精准防御、护盾反击与格挡
+        [HarmonyPatch(typeof(M2PrSkill), "isEnable", new[] { typeof(SkillManager.SKILL_TYPE) })]
+        [HarmonyPostfix]
+        public static void Postfix_M2PrSkill_isEnable(SkillManager.SKILL_TYPE skill, ref bool __result)
+        {
+            if (AICModConfig.Current.JustGuardNoHit || AICModConfig.Current.ExtendedJustGuard)
+            {
+                if (skill == SkillManager.SKILL_TYPE.evade_dancing
+                    || skill == SkillManager.SKILL_TYPE.justguard
+                    || skill == SkillManager.SKILL_TYPE.shield_counter
+                    || skill == SkillManager.SKILL_TYPE.guard)
+                {
+                    __result = true;
+                }
+            }
+        }
+
+        // 10.2 精准防御就绪状态优化
+        [HarmonyPatch(typeof(M2PrSkillShieldEvade), "get_is_justguard_prepared")]
+        [HarmonyPostfix]
+        public static void Postfix_M2PrSkillShieldEvade_get_is_justguard_prepared(M2PrSkillShieldEvade __instance, ref bool __result)
+        {
+            if (AICModConfig.Current.ExtendedJustGuard && __instance?.Shield != null && __instance.Shield.isActive())
+            {
+                __result = true;
+            }
+        }
+
+        [HarmonyPatch(typeof(M2PrSkillShieldEvade), "get_is_justguard_available")]
+        [HarmonyPostfix]
+        public static void Postfix_M2PrSkillShieldEvade_get_is_justguard_available(ref bool __result)
+        {
+            if (AICModConfig.Current.JustGuardNoHit || AICModConfig.Current.ExtendedJustGuard)
+            {
+                __result = true;
+            }
+        }
+
+        // 10.3 举盾反击衔接：在精准防御就绪期间，即便按住举盾，输入 方向+攻击 也优先衔接居合反击
+        [HarmonyPatch(typeof(M2PrSkillShieldEvade), "getPunchVariation", new[] { typeof(bool), typeof(PR.STATE), typeof(bool) }, new[] { ArgumentType.Normal, ArgumentType.Ref, ArgumentType.Ref })]
+        [HarmonyPrefix]
+        public static bool Prefix_M2PrSkillShieldEvade_getPunchVariation(M2PrSkillShieldEvade __instance, ref PR.STATE ret, ref bool change_dir, ref bool __result)
+        {
+            if ((AICModConfig.Current.JustGuardNoHit || AICModConfig.Current.ExtendedJustGuard) && __instance != null)
+            {
+                if (__instance.enabled_evadecounter_input && (__instance.Pr.isLO() || __instance.Pr.isRO()))
+                {
+                    ret = (__instance.Skill.getCurMagic() != null) ? PR.STATE.EVADECOUNTER_SHOTGUN : PR.STATE.EVADECOUNTER;
+                    change_dir = true;
+                    __result = true;
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }

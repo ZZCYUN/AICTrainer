@@ -1446,6 +1446,140 @@
                                 </Grid>
                             </Grid>
                         </Grid>
+                    </Border>                    <!-- 圣光爆发不眩晕 -->
+                    <Border Visibility="{Binding Vis_NoBurstTired}" Style="{StaticResource FeatureCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- 左侧表情图标 -->
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" BorderBrush="#383852" BorderThickness="1" Background="#141420" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Border.Clip>
+                                    <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,40,40"/>
+                                </Border.Clip>
+                                <Image Source="{h:Sticker 0_3}" Stretch="UniformToFill"/>
+                            </Border>
+                            <!-- 右侧主体内容 -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="圣光爆发不眩晕" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="13"/>
+                                        <Border Margin="8,0,0,0" Background="#2E1065" CornerRadius="6" Padding="6,1">
+                                            <TextBlock Text="爆发" Foreground="#A855F7" FontSize="11"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Style="{StaticResource StarButton}" Command="{Binding ToggleFavCommand}" CommandParameter="NoBurstTired" Background="{Binding StarBg_NoBurstTired}" BorderBrush="{Binding StarBorder_NoBurstTired}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StarChar_NoBurstTired}" Foreground="{Binding StarColor_NoBurstTired}" FontSize="15" FontWeight="Bold" Margin="0,-2,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding StarText_NoBurstTired}" Foreground="{Binding StarTextColor_NoBurstTired}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="锁定爆发虚脱概率为 0%，免疫爆发力竭虚脱与魔力透支" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" Content="免晕开启" IsChecked="{Binding IsNoBurstTired}"/>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <!-- 展开即精准防御 (无需受击) -->
+                    <Border Visibility="{Binding Vis_JustGuardNoHit}" Style="{StaticResource FeatureCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- 左侧表情图标 -->
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" BorderBrush="#383852" BorderThickness="1" Background="#141420" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Border.Clip>
+                                    <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,40,40"/>
+                                </Border.Clip>
+                                <Image Source="{h:Sticker 0_4}" Stretch="UniformToFill"/>
+                            </Border>
+                            <!-- 右侧主体内容 -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="展开即精准防御" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="13"/>
+                                        <Border Margin="8,0,0,0" Background="#1E293B" CornerRadius="6" Padding="6,1">
+                                            <TextBlock Text="无需受击" Foreground="#38BDF8" FontSize="11"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Style="{StaticResource StarButton}" Command="{Binding ToggleFavCommand}" CommandParameter="JustGuardNoHit" Background="{Binding StarBg_JustGuardNoHit}" BorderBrush="{Binding StarBorder_JustGuardNoHit}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StarChar_JustGuardNoHit}" Foreground="{Binding StarColor_JustGuardNoHit}" FontSize="15" FontWeight="Bold" Margin="0,-2,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding StarText_JustGuardNoHit}" Foreground="{Binding StarTextColor_JustGuardNoHit}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="按下展开护盾瞬间直接触发精准防御与慢动作反击准备，无需承受任何攻击" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" Content="防御开启" IsChecked="{Binding IsJustGuardNoHit}"/>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <!-- 持续精准防御 (拉长时间) -->
+                    <Border Visibility="{Binding Vis_ExtendedJustGuard}" Style="{StaticResource FeatureCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- 左侧表情图标 -->
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" BorderBrush="#383852" BorderThickness="1" Background="#141420" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Border.Clip>
+                                    <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,40,40"/>
+                                </Border.Clip>
+                                <Image Source="{h:Sticker 2_2}" Stretch="UniformToFill"/>
+                            </Border>
+                            <!-- 右侧主体内容 -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="持续精准防御" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="13"/>
+                                        <Border Margin="8,0,0,0" Background="#1E293B" CornerRadius="6" Padding="6,1">
+                                            <TextBlock Text="拉长时间" Foreground="#38BDF8" FontSize="11"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Style="{StaticResource StarButton}" Command="{Binding ToggleFavCommand}" CommandParameter="ExtendedJustGuard" Background="{Binding StarBg_ExtendedJustGuard}" BorderBrush="{Binding StarBorder_ExtendedJustGuard}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StarChar_ExtendedJustGuard}" Foreground="{Binding StarColor_ExtendedJustGuard}" FontSize="15" FontWeight="Bold" Margin="0,-2,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding StarText_ExtendedJustGuard}" Foreground="{Binding StarTextColor_ExtendedJustGuard}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="无限拉长精准防御判定时间，展开护盾期间受到任何攻击必定精准弹反" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" Content="防御开启" IsChecked="{Binding IsExtendedJustGuard}"/>
+                                </Grid>
+                            </Grid>
+                        </Grid>
                     </Border>
                         </UniformGrid>
                     </StackPanel>

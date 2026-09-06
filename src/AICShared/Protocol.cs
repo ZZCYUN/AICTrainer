@@ -138,7 +138,10 @@ namespace AICShared
         // 28. 魔法蓄力秒完成 (瞬发满蓄)
         public bool InstantMagicCharge;
 
-        // 29. 资产与各类货币锁定
+        // 29. 圣光爆发不触发眩晕
+        public bool NoBurstTired;
+
+        // 30. 资产与各类货币锁定
         public bool LockGold;
         public int TargetGold = 999999;
         public bool LockCrafts;
@@ -151,6 +154,12 @@ namespace AICShared
         public int TargetGuildPoints = 9999;
         public bool LockLanthanum;
         public int TargetLanthanum = 99;
+
+        // 31. 展开护盾就触发精准防御 (无需受击)
+        public bool JustGuardNoHit;
+
+        // 32. 展开护盾受到攻击就精准防御 (拉长时间)
+        public bool ExtendedJustGuard;
     }
 
     [Serializable]
