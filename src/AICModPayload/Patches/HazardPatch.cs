@@ -12,7 +12,7 @@ namespace AICMod.Patches
         [HarmonyPrefix]
         public static bool Prefix_canPullByWorm(ref bool __result)
         {
-            if (AICModConfig.Current.NoWormTrap)
+            if (AICModConfig.Current.NoWormTrap || AICModConfig.Current.DisableHitCheck)
             {
                 __result = false;
                 return false;

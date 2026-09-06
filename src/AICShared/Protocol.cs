@@ -163,6 +163,9 @@ namespace AICShared
 
         // 33. 武馆小游戏必胜 (无论是否正确按正确判定)
         public bool DojoAlwaysWin;
+
+        // 34. 禁止受击判定 (完全免疫受击/攻击穿透)
+        public bool DisableHitCheck;
     }
 
     [Serializable]

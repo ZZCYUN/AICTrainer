@@ -311,10 +311,6 @@ namespace AICMod
                 if ((cfg.JustGuardNoHit || cfg.ExtendedJustGuard) && pr.Skill?.ShE?.Shield != null)
                 {
                     pr.Skill.ShE.Shield.just_guard_enable = true;
-                    if (cfg.ExtendedJustGuard && pr.Skill.ShE.Shield.isActive())
-                    {
-                        ReflectionHelper.SetValue(pr.Skill.ShE.Shield, 10f, "t_justguard_prepare");
-                    }
                 }
             });
         }

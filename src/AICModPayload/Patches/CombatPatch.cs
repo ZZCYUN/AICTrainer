@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using HarmonyLib;
 using m2d;
 using nel;
@@ -186,12 +187,19 @@ namespace AICMod.Patches
         // =========================================================================
         [HarmonyPatch(typeof(M2Shield), "checkShield", new[] { typeof(AttackInfo), typeof(float), typeof(bool) })]
         [HarmonyPostfix]
-        public static void Postfix_M2Shield_checkShield(M2Shield __instance, ref M2Shield.RESULT __result)
+        public static void Postfix_M2Shield_checkShield(M2Shield __instance, AttackInfo Atk, bool from_away, ref M2Shield.RESULT __result)
         {
             if (AICModConfig.Current.ExtendedJustGuard && __instance != null && __instance.isActive())
             {
-                // 只要护盾处于展开/激活状态，受到任何攻击均判定为精准防御成功并弹反
-                __result = M2Shield.RESULT.GUARD_CONTINUE | M2Shield.RESULT._JUSTGUARD_SUCCESS;
+                // 举盾受击必定触发精准防御：若成功格挡或受到敌方攻击，均升级为精准防御成功
+                if (__result == M2Shield.RESULT.GUARD || __result == M2Shield.RESULT.GUARD_CONTINUE)
+                {
+                    __result |= M2Shield.RESULT._JUSTGUARD_SUCCESS;
+                }
+                else if (!from_away && Atk is NelAttackInfo nelAtk && nelAtk.Caster as M2Mover != __instance.Mv)
+                {
+                    __result = M2Shield.RESULT.GUARD_CONTINUE | M2Shield.RESULT._JUSTGUARD_SUCCESS;
+                }
             }
         }
 
@@ -215,28 +223,7 @@ namespace AICMod.Patches
             }
         }
 
-        // 10.2 精准防御就绪状态优化
-        [HarmonyPatch(typeof(M2PrSkillShieldEvade), "get_is_justguard_prepared")]
-        [HarmonyPostfix]
-        public static void Postfix_M2PrSkillShieldEvade_get_is_justguard_prepared(M2PrSkillShieldEvade __instance, ref bool __result)
-        {
-            if (AICModConfig.Current.ExtendedJustGuard && __instance?.Shield != null && __instance.Shield.isActive())
-            {
-                __result = true;
-            }
-        }
-
-        [HarmonyPatch(typeof(M2PrSkillShieldEvade), "get_is_justguard_available")]
-        [HarmonyPostfix]
-        public static void Postfix_M2PrSkillShieldEvade_get_is_justguard_available(ref bool __result)
-        {
-            if (AICModConfig.Current.JustGuardNoHit || AICModConfig.Current.ExtendedJustGuard)
-            {
-                __result = true;
-            }
-        }
-
-        // 10.3 举盾反击衔接：在精准防御就绪期间，即便按住举盾，输入 方向+攻击 也优先衔接居合反击
+        // 10.2 举盾反击衔接：在精准防御就绪期间，即便按住举盾，输入 方向+攻击 也优先衔接居合反击
         [HarmonyPatch(typeof(M2PrSkillShieldEvade), "getPunchVariation", new[] { typeof(bool), typeof(PR.STATE), typeof(bool) }, new[] { ArgumentType.Normal, ArgumentType.Ref, ArgumentType.Ref })]
         [HarmonyPrefix]
         public static bool Prefix_M2PrSkillShieldEvade_getPunchVariation(M2PrSkillShieldEvade __instance, ref PR.STATE ret, ref bool change_dir, ref bool __result)
@@ -252,6 +239,74 @@ namespace AICMod.Patches
                 }
             }
             return true;
+        }
+
+        // =========================================================================
+        // 11. 禁止受击判定 (DisableHitCheck)
+        // =========================================================================
+        // 11.1 敌方普通攻击直接忽略 (不触发受击判定)
+        [HarmonyPatch(typeof(M2PrSkill), "normalAttackIgnorable")]
+        [HarmonyPostfix]
+        public static void Postfix_M2PrSkill_normalAttackIgnorable(ref bool __result)
+        {
+            if (AICModConfig.Current.DisableHitCheck)
+            {
+                __result = true;
+            }
+        }
+
+        // 11.2 核心伤害与受击拦截：豁免一切技能/魔法/重击伤害、硬直与受击动作
+        [HarmonyPatch]
+        public static class Patch_M2PrADmg_applyDamage
+        {
+            public static MethodBase? TargetMethod()
+            {
+                return AccessTools.Method(typeof(M2PrADmg), "applyDamage", new[] {
+                    typeof(NelAttackInfo),
+                    typeof(HITTYPE).MakeByRefType(),
+                    typeof(bool),
+                    typeof(string),
+                    typeof(bool),
+                    typeof(bool)
+                });
+            }
+
+            [HarmonyPrefix]
+            public static bool Prefix(ref int __result)
+            {
+                if (AICModConfig.Current.DisableHitCheck)
+                {
+                    __result = 0;
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        // 11.3 拦截一切抓取、吸收与拘束
+        [HarmonyPatch]
+        public static class Patch_PR_initAbsorb
+        {
+            public static MethodBase? TargetMethod()
+            {
+                return AccessTools.Method(typeof(PR), "initAbsorb", new[] {
+                    typeof(NelAttackInfo),
+                    typeof(NelM2Attacker),
+                    typeof(AbsorbManager),
+                    typeof(bool)
+                });
+            }
+
+            [HarmonyPrefix]
+            public static bool Prefix(ref bool __result)
+            {
+                if (AICModConfig.Current.DisableHitCheck)
+                {
+                    __result = false;
+                    return false;
+                }
+                return true;
+            }
         }
     }
 }
