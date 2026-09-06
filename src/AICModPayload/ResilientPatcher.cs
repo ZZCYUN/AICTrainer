@@ -75,14 +75,17 @@ namespace AICMod
             var classPatchAttrs = patchClass.GetCustomAttributes(typeof(HarmonyPatch), false);
             Type? classTargetType = null;
             string? classTargetMethod = null;
+            Type[]? classTargetArgTypes = null;
 
             foreach (HarmonyPatch attr in classPatchAttrs)
             {
                 var trav = Traverse.Create(attr);
                 var targetType = trav.Field("info").Field<Type>("declaringType").Value;
                 var methodName = trav.Field("info").Field<string>("methodName").Value;
+                var argTypes = trav.Field("info").Field<Type[]>("argumentTypes").Value;
                 if (targetType != null) classTargetType = targetType;
                 if (!string.IsNullOrEmpty(methodName)) classTargetMethod = methodName;
+                if (argTypes != null) classTargetArgTypes = argTypes;
             }
 
             // 2. 遍历方法级别的 Patch
@@ -104,7 +107,7 @@ namespace AICMod
                 {
                     Type? targetType = classTargetType;
                     string? targetMethodName = classTargetMethod;
-                    Type[]? targetArgTypes = null;
+                    Type[]? targetArgTypes = classTargetArgTypes;
 
                     foreach (HarmonyPatch attr in methodPatchAttrs)
                     {
@@ -137,7 +140,22 @@ namespace AICMod
                     }
                     if (targetMethod == null)
                     {
-                        targetMethod = AccessTools.Method(targetType, targetMethodName);
+                        try
+                        {
+                            targetMethod = AccessTools.Method(targetType, targetMethodName);
+                        }
+                        catch (AmbiguousMatchException)
+                        {
+                            var allMethods = targetType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                            foreach (var m in allMethods)
+                            {
+                                if (m.Name == targetMethodName)
+                                {
+                                    targetMethod = m;
+                                    break;
+                                }
+                            }
+                        }
                     }
                     if (targetMethod == null)
                     {

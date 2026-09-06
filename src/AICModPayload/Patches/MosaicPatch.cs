@@ -82,9 +82,14 @@ namespace AICMod.Patches
         }
 
         // 4. 立绘与Spine部件计数拦截：返回 0 处马赛克，使上层完全不触发网格绘制
-        [HarmonyPatch(typeof(UIPictureBodyData), "countMosaic", new[] { typeof(bool) })]
+        [HarmonyPatch]
         public static class Patch_UIPictureBodyData_countMosaic1
         {
+            public static MethodBase? TargetMethod()
+            {
+                return AccessTools.Method(typeof(UIPictureBodyData), "countMosaic", new[] { typeof(bool) });
+            }
+
             [HarmonyPrefix]
             public static bool Prefix(ref int __result)
             {
@@ -97,9 +102,14 @@ namespace AICMod.Patches
             }
         }
 
-        [HarmonyPatch(typeof(UIPictureBodyData), "countMosaic", new[] { typeof(bool), typeof(UIPictureBase.EMSTATE) })]
+        [HarmonyPatch]
         public static class Patch_UIPictureBodyData_countMosaic2
         {
+            public static MethodBase? TargetMethod()
+            {
+                return AccessTools.Method(typeof(UIPictureBodyData), "countMosaic", new[] { typeof(bool), typeof(UIPictureBase.EMSTATE) });
+            }
+
             [HarmonyPrefix]
             public static bool Prefix(ref int __result)
             {
@@ -129,9 +139,14 @@ namespace AICMod.Patches
         }
 
         // 6. Spine 骨骼附加马赛克获取拦截
-        [HarmonyPatch(typeof(UIPictureBodySpine), "getSensitiveOrMosaicRect", new[] { typeof(Matrix4x4), typeof(int), typeof(MeshAttachment), typeof(Slot) }, new[] { ArgumentType.Ref, ArgumentType.Normal, ArgumentType.Ref, ArgumentType.Ref })]
+        [HarmonyPatch]
         public static class Patch_UIPictureBodySpine_getSensitiveOrMosaicRect1
         {
+            public static MethodBase? TargetMethod()
+            {
+                return AccessTools.Method(typeof(UIPictureBodySpine), "getSensitiveOrMosaicRect", new[] { typeof(Matrix4x4).MakeByRefType(), typeof(int), typeof(MeshAttachment).MakeByRefType(), typeof(Slot).MakeByRefType() });
+            }
+
             [HarmonyPrefix]
             public static bool Prefix(ref bool __result)
             {
@@ -144,9 +159,14 @@ namespace AICMod.Patches
             }
         }
 
-        [HarmonyPatch(typeof(UIPictureBodySpine), "getSensitiveOrMosaicRect", new[] { typeof(Matrix4x4), typeof(UIPictureBase.EMSTATE), typeof(int), typeof(MeshAttachment), typeof(Slot), typeof(SpineViewer) }, new[] { ArgumentType.Ref, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Ref, ArgumentType.Ref, ArgumentType.Normal })]
+        [HarmonyPatch]
         public static class Patch_UIPictureBodySpine_getSensitiveOrMosaicRect2
         {
+            public static MethodBase? TargetMethod()
+            {
+                return AccessTools.Method(typeof(UIPictureBodySpine), "getSensitiveOrMosaicRect", new[] { typeof(Matrix4x4).MakeByRefType(), typeof(UIPictureBase.EMSTATE), typeof(int), typeof(MeshAttachment).MakeByRefType(), typeof(Slot).MakeByRefType(), typeof(SpineViewer) });
+            }
+
             [HarmonyPrefix]
             public static bool Prefix(ref bool __result)
             {

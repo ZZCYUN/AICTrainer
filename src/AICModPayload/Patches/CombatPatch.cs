@@ -201,14 +201,14 @@ namespace AICMod.Patches
         // 10.1 豁免技能树解锁需求：强制允许居合闪避、精准防御、护盾反击与格挡
         [HarmonyPatch(typeof(M2PrSkill), "isEnable", new[] { typeof(SkillManager.SKILL_TYPE) })]
         [HarmonyPostfix]
-        public static void Postfix_M2PrSkill_isEnable(SkillManager.SKILL_TYPE skill, ref bool __result)
+        public static void Postfix_M2PrSkill_isEnable(SkillManager.SKILL_TYPE type, ref bool __result)
         {
             if (AICModConfig.Current.JustGuardNoHit || AICModConfig.Current.ExtendedJustGuard)
             {
-                if (skill == SkillManager.SKILL_TYPE.evade_dancing
-                    || skill == SkillManager.SKILL_TYPE.justguard
-                    || skill == SkillManager.SKILL_TYPE.shield_counter
-                    || skill == SkillManager.SKILL_TYPE.guard)
+                if (type == SkillManager.SKILL_TYPE.evade_dancing
+                    || type == SkillManager.SKILL_TYPE.justguard
+                    || type == SkillManager.SKILL_TYPE.shield_counter
+                    || type == SkillManager.SKILL_TYPE.guard)
                 {
                     __result = true;
                 }
