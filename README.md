@@ -26,14 +26,14 @@
 [ AICModPayload (C# / netstandard2.1) ]
         │
         ├── Mono 虚拟机进程内驻留 (mono_runtime_invoke)
-        ├── ResilientPatcher (35 项沙箱隔离的容错 Harmony 补丁)
+        ├── ResilientPatcher (59 项沙箱隔离的容错 Harmony 补丁)
         └── 动态反射与事件拦截 (零硬编码内存地址，纯元数据动态绑定)
 ```
 
 1. **零硬编码内存基址（Zero Hardcoded Addresses）**
    - 不依赖容易在版本更新后移位的静态偏移（如 `base+0x12345`），全部通过游戏 Mono 托管堆内存的对象引用、类元数据及反射查找。
 2. **细粒度沙箱容错补丁管理器（ResilientPatcher）**
-   - 包含 31 项功能独立补丁，全部隔离在独立的 Try-Catch 沙箱内。
+   - 包含 59 项独立沙箱补丁，全部隔离在独立的 Try-Catch 沙箱内。
    - 即使游戏小版本更新修改了其中某一个函数的形参，也只会安全跳过该单一补丁，绝不会导致整个修改器瘫痪或游戏闪退。
 3. **安全双向 IPC 实时同步**
    - 客户端与注入模块通过 Local Loopback TCP 进行轻量级二进制/JSON 协议通信，双向心跳保活与状态秒级同步。
@@ -161,7 +161,7 @@ dotnet publish src/AICTrainer/AICTrainer.csproj -c Release -r win-x64 --self-con
 
 在此明确承认并感谢 AI 在以下研发环节提供的核心协助：
 - **Unity Mono 底层逆向与类型分析**：动态解析游戏托管对象拓扑，梳理核心数据结构与事件钩子。
-- **ResilientPatcher 容错体系设计**：为全部 31 项补丁构建独立的异常隔离沙箱，确保跨版本更新稳定性。
+- **ResilientPatcher 容错体系设计**：为全部 59 项补丁构建独立的异常隔离沙箱，确保跨版本更新稳定性。
 - **现代化 WPF 界面与贴纸系统**：设计霓虹暗黑主题风格与切图自适应渲染扩展。
 - **代码重构与工程化**：模块解耦、发布脚本优化与项目全流程文档沉淀。
 
