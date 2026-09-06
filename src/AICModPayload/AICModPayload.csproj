@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\AICShared\Protocol.cs" Link="Protocol.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\AICTrainer\Resources\0Harmony.dll" Link="0Harmony.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>C:\UnityModManagerInstaller\0Harmony.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>C:\AliceInCradle\AliceInCradle_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>C:\AliceInCradle\AliceInCradle_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.Physics2DModule">
+      <HintPath>C:\AliceInCradle\AliceInCradle_Data\Managed\UnityEngine.Physics2DModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>C:\AliceInCradle\AliceInCradle_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="unsafeAssem">
+      <HintPath>C:\AliceInCradle\AliceInCradle_Data\Managed\unsafeAssem.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="better">
+      <HintPath>C:\AliceInCradle\AliceInCradle_Data\Managed\better.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="pixelliner">
+      <HintPath>C:\AliceInCradle\AliceInCradle_Data\Managed\pixelliner.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>C:\AliceInCradle\AliceInCradle_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

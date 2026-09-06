@@ -1,0 +1,31 @@
+## Visual Studio / Rider / VSCode
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+## Build Artifacts
+[Bb]in/
+[Oo]bj/
+publish/
+publish_single/
+dist/
+out/
+
+## Decompilation & Scratch directories
+decomp/
+decomp_fw/
+scratch/
+test_exact_crops/
+
+## Logs & Temp files
+*.log
+*.tmp
+*.bak
+*.cache
+Thumbs.db
+[Dd]esktop.ini

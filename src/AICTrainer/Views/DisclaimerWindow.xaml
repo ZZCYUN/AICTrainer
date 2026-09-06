@@ -1,0 +1,144 @@
+<Window x:Class="AICTrainer.Views.DisclaimerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:h="clr-namespace:AICTrainer.Helpers"
+        Title="免责声明"
+        Width="520" Height="470"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Border Background="#13131E" BorderBrush="#00F0FF" BorderThickness="1.5" CornerRadius="12" Margin="12">
+        <Border.Effect>
+            <DropShadowEffect Color="#00F0FF" BlurRadius="20" ShadowDepth="0" Opacity="0.35"/>
+        </Border.Effect>
+
+        <Grid Margin="20,18,20,18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- 标题栏 -->
+                <RowDefinition Height="*"/>    <!-- 内容区 -->
+                <RowDefinition Height="Auto"/> <!-- 底部按钮 -->
+            </Grid.RowDefinitions>
+
+            <!-- 1. 标题 -->
+            <Grid Grid.Row="0" Margin="0,0,0,14">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="36" Height="36" CornerRadius="8" BorderBrush="#FF5252" BorderThickness="1.5" Background="#2A141A" Margin="0,0,10,0">
+                        <Border.Clip>
+                            <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,36,36"/>
+                        </Border.Clip>
+                        <Image Source="{h:Sticker 2_0}" Stretch="UniformToFill"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="免责声明与版权信息" FontSize="16" FontWeight="Bold" Foreground="#F3F4F6"/>
+                        <TextBlock Text="Alice in Cradle Memory Trainer" FontSize="11" Foreground="#9CA3AF"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <!-- 2. 内容区 -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,14">
+                <StackPanel>
+                    <!-- 核心声明警告框 -->
+                    <Border Background="#1C1824" BorderBrush="#E11D48" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="⚠️ 重要提示与免责声明" Foreground="#FB7185" FontWeight="Bold" FontSize="13" Margin="0,0,0,6"/>
+                            <TextBlock Text="1. 本修改器为玩家自制兴趣作品，与《Alice in Cradle》官方开发团队无任何关联。" Foreground="#E5E7EB" FontSize="12" TextWrapping="Wrap" LineHeight="18"/>
+                            <TextBlock Text="2. 开启并使用本修改器时，可能会破坏游戏原生机制、触发运行崩溃、造成数据错乱或不可逆坏档。" Foreground="#E5E7EB" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="18"/>
+                            <TextBlock Text="3. 【严正声明】：若游戏出现任何 Bug、异常或崩溃，请绝对不要向官方反馈！请自行排查或关闭修改器。" Foreground="#F43F5E" FontWeight="Bold" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0" LineHeight="18"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 作者与版权致谢框 -->
+                    <Border Background="#181A28" BorderBrush="#2F3854" BorderThickness="1" CornerRadius="8" Padding="14,12">
+                        <StackPanel>
+                            <TextBlock Text="📌 作品信息与素材来源" Foreground="#38BDF8" FontWeight="Bold" FontSize="13" Margin="0,0,0,6"/>
+                            
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <TextBlock Text="• 作者：" Foreground="#9CA3AF" FontSize="12"/>
+                                <TextBlock Text="荔枝的君子" Foreground="#F3F4F6" FontWeight="Bold" FontSize="12"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock Text="• 看板娘图片来源：" Foreground="#9CA3AF" FontSize="12" VerticalAlignment="Center"/>
+                                <TextBlock Text="https://www.pixiv.net/artworks/149248561" Foreground="#00F0FF" FontSize="11" Cursor="Hand" TextDecorations="Underline" VerticalAlignment="Center" MouseLeftButtonDown="OnPixivLinkClick"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock Text="• 表情包素材来源：" Foreground="#9CA3AF" FontSize="12"/>
+                                <TextBlock Text="Alice in Cradle 官方" Foreground="#F3F4F6" FontWeight="SemiBold" FontSize="12"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- 3. 底部按钮 -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="1" Content="不再提示" Width="100" Height="32" Margin="0,0,10,0" Click="OnDoNotShowAgainClick">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="#222234"/>
+                            <Setter Property="Foreground" Value="#9CA3AF"/>
+                            <Setter Property="BorderBrush" Value="#3D3D58"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#2E2E44"/>
+                                    <Setter Property="Foreground" Value="#F3F4F6"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <Button Grid.Column="2" Content="我已知晓 (确定)" Width="130" Height="32" Click="OnOkClick">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="#172B23"/>
+                            <Setter Property="Foreground" Value="#B9F6CA"/>
+                            <Setter Property="BorderBrush" Value="#00E676"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#224436"/>
+                                                <Setter TargetName="bd" Property="BorderBrush" Value="#69F0AE"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

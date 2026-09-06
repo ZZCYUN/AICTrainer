@@ -1,0 +1,87 @@
+using System;
+using System.Windows;
+using AICTrainer.Services;
+using AICTrainer.ViewModels;
+
+namespace AICTrainer.Views
+{
+    public partial class MainWindow : Window
+    {
+        private readonly MainViewModel _vm;
+
+        public MainWindow()
+        {
+            InitializeComponent();
+            _vm = (MainViewModel)DataContext;
+        }
+
+        private void OnWindowLoaded(object sender, RoutedEventArgs e)
+        {
+            var settings = TrainerSettings.Load();
+            if (!settings.DoNotShowDisclaimer)
+            {
+                var dlg = new DisclaimerWindow { Owner = this };
+                dlg.ShowDialog();
+            }
+        }
+
+        private void OnTitleBarMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
+            {
+                DragMove();
+            }
+        }
+
+        private void OnMinimizeClick(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        private void OnCloseClick(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private async void OnInjectClick(object sender, RoutedEventArgs e)
+        {
+            await _vm.InjectAndConnectAsync();
+        }
+
+        private void OnQuickFullHeal(object sender, RoutedEventArgs e)
+        {
+            _vm.QuickHealCommand.Execute(null);
+        }
+
+        private void OnQuickCureCracks(object sender, RoutedEventArgs e)
+        {
+            _vm.QuickCureCracksCommand.Execute(null);
+        }
+
+        private void OnQuickCureSer(object sender, RoutedEventArgs e)
+        {
+            _vm.QuickCureSerCommand.Execute(null);
+        }
+
+        private void OnQuickClearSatiety(object sender, RoutedEventArgs e)
+        {
+            _vm.QuickClearSatietyCommand.Execute(null);
+        }
+
+        private void OnQuickClearEp(object sender, RoutedEventArgs e)
+        {
+            _vm.QuickClearEpCommand.Execute(null);
+        }
+
+        private void OnCategorySelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            MainCardsScrollViewer?.ScrollToTop();
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+            Application.Current.Shutdown();
+        }
+    }
+}

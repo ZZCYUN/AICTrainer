@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AICModPayload/AICModPayload.csproj" />
+    <Project Path="src/AICShared/AICShared.csproj" />
+    <Project Path="src/AICTrainer/AICTrainer.csproj" />
+  </Folder>
+</Solution>
