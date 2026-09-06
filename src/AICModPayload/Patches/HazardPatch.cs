@@ -23,7 +23,7 @@ namespace AICMod.Patches
         // 2. 荆棘无效 & 电击无效 (地图伤害): 判定并豁免对应类型
         [HarmonyPatch(typeof(PR), "applyDamageFromMap", new[] { typeof(M2MapDamageContainer.M2MapDamageItem), typeof(AttackInfo), typeof(float), typeof(float), typeof(bool) })]
         [HarmonyPrefix]
-        public static bool Prefix_applyDamageFromMap(M2MapDamageContainer.M2MapDamageItem MDI, ref AttackInfo __result)
+        public static bool Prefix_applyDamageFromMap(M2MapDamageContainer.M2MapDamageItem MDI, ref AttackInfo? __result)
         {
             if (MDI != null)
             {

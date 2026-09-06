@@ -25,7 +25,7 @@ namespace AICMod.Patches
         // 1. 全天可快速移动 (打破夜间战斗、恶劣天气与剧情封锁)
         [HarmonyPatch(typeof(NelM2DBase), "cantFastTravel")]
         [HarmonyPrefix]
-        public static bool Prefix_cantFastTravel(ref string __result)
+        public static bool Prefix_cantFastTravel(ref string? __result)
         {
             if (AICModConfig.Current.FastTravelAnytime || AICModConfig.Current.FastTravelAnywhere)
             {
