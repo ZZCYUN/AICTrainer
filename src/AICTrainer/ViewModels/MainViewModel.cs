@@ -1089,8 +1089,8 @@ namespace AICTrainer.ViewModels
                     return;
                 }
 
-                // 游戏窗口已真实弹出，等待 5000ms 后才进行注入
-                for (int i = 5; i > 0; i--)
+                // 游戏窗口已真实弹出，等待完全加载至标题画面并额外延迟10秒后才进行注入 (共20秒安全缓冲)
+                for (int i = 20; i > 0; i--)
                 {
                     if (proc.HasExited)
                     {
@@ -1098,7 +1098,14 @@ namespace AICTrainer.ViewModels
                         StatusColor = "#FF5555";
                         return;
                     }
-                    StatusText = $"检测到游戏窗口已弹出，等待 {i} 秒后自动注入...";
+                    if (i > 10)
+                    {
+                        StatusText = $"检测到游戏窗口，等待加载至标题画面 (约 {i - 10} 秒)...";
+                    }
+                    else
+                    {
+                        StatusText = $"已到达标题画面，安全缓冲延迟 {i} 秒后自动注入...";
+                    }
                     StatusColor = "#FFAA00";
                     await Task.Delay(1000);
                 }
@@ -1148,6 +1155,36 @@ namespace AICTrainer.ViewModels
                 MessageBox.Show("游戏尚未运行，请先点击【启动游戏】或启动 Alice in Cradle！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 return false;
             }
+
+            // 检查游戏进程运行时长：若启动未满 20 秒，缓冲等待直到达到 20 秒，确保已进标题画面并稳定
+            try
+            {
+                var uptime = DateTime.Now - Monitor.TargetProcess.StartTime;
+                if (uptime.TotalSeconds < 20)
+                {
+                    int remain = (int)Math.Ceiling(20 - uptime.TotalSeconds);
+                    for (int i = remain; i > 0; i--)
+                    {
+                        if (Monitor.TargetProcess == null || Monitor.TargetProcess.HasExited)
+                        {
+                            StatusText = "游戏已退出，注入已取消";
+                            StatusColor = "#FF5555";
+                            return false;
+                        }
+                        if (i > 10)
+                        {
+                            StatusText = $"游戏刚启动，等待其加载至标题画面 (约 {i - 10} 秒)...";
+                        }
+                        else
+                        {
+                            StatusText = $"已到达标题画面，安全缓冲延迟 {i} 秒后注入...";
+                        }
+                        StatusColor = "#FFAA00";
+                        await Task.Delay(1000);
+                    }
+                }
+            }
+            catch { }
 
             byte[]? payloadBytes = ProcessMonitor.GetEmbeddedPayloadBytes();
             if (payloadBytes == null || payloadBytes.Length == 0)

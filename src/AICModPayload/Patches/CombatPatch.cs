@@ -57,12 +57,25 @@ namespace AICMod.Patches
         // 3. 可连跳 (无限多段跳)
         [HarmonyPatch(typeof(M2FootManager), "canJump")]
         [HarmonyPrefix]
-        public static bool Prefix_canJump(ref bool __result)
+        public static bool Prefix_canJump(M2FootManager? __instance, ref bool __result)
         {
-            if (AICModConfig.Current.InfiniteJump)
+            try
+            {
+                if (__instance == null)
+                {
+                    __result = true;
+                    return false; // 防止对象未就绪时的空引用崩溃
+                }
+                if (AICModConfig.Current != null && AICModConfig.Current.InfiniteJump)
+                {
+                    __result = true;
+                    return false; // 随时允许跳跃
+                }
+            }
+            catch
             {
                 __result = true;
-                return false; // 随时允许跳跃
+                return false;
             }
             return true;
         }
