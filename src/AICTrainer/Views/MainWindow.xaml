@@ -33,6 +33,7 @@
         <SolidColorBrush x:Key="AccentGold" Color="#FFD700"/>
         <SolidColorBrush x:Key="TextPrimary" Color="#F3F4F6"/>
         <SolidColorBrush x:Key="TextSecondary" Color="#9CA3AF"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#6B7280"/>
         <SolidColorBrush x:Key="BorderDark" Color="#2A2A3E"/>
 
         <!-- 滑动开关 ToggleSwitch 样式 -->

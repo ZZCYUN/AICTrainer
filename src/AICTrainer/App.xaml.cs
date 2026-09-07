@@ -16,6 +16,14 @@ namespace AICTrainer
         private static extern bool AttachConsole(int dwProcessId);
         private const int ATTACH_PARENT_PROCESS = -1;
 
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+
+        private static System.Threading.Mutex? _appMutex;
+
         protected override void OnStartup(StartupEventArgs e)
         {
             AppDomain.CurrentDomain.UnhandledException += (s, args) =>
@@ -37,14 +45,33 @@ namespace AICTrainer
 
             try
             {
+                _appMutex = new System.Threading.Mutex(true, "AICTrainer_SingleInstance_Mutex", out bool isNewInstance);
+                if (!isNewInstance)
+                {
+                    var currentProc = Process.GetCurrentProcess();
+                    var existing = Process.GetProcessesByName(currentProc.ProcessName)
+                        .FirstOrDefault(p => p.Id != currentProc.Id && p.MainWindowHandle != IntPtr.Zero);
+                    if (existing != null)
+                    {
+                        ShowWindowAsync(existing.MainWindowHandle, 9); // SW_RESTORE
+                        SetForegroundWindow(existing.MainWindowHandle);
+                    }
+                    Shutdown();
+                    return;
+                }
+
                 base.OnStartup(e);
                 var win = new Views.MainWindow();
                 MainWindow = win;
                 win.Show();
+
+                try { if (File.Exists(@"C:\AliceInCradle\crash.log")) File.Delete(@"C:\AliceInCradle\crash.log"); } catch { }
             }
             catch (Exception ex)
             {
                 try { File.WriteAllText(@"C:\AliceInCradle\crash.log", ex.ToString()); } catch { }
+                MessageBox.Show($"修改器启动出现异常：\n{ex.Message}\n\n详细崩溃日志已记录至 C:\\AliceInCradle\\crash.log", "启动异常", MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown(-1);
             }
         }
 
