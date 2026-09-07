@@ -8,7 +8,71 @@ namespace AICMod.Patches
 {
     public static class ReelPatch
     {
-        // 1. 挂钩 ReelExecuter.decideRotate: 强制锁定最优物品与最优升级效果槽位
+        // 1. 放慢首轮物品选择：挂钩 ReelExecuter.progressRotate
+        [HarmonyPatch]
+        public static class Patch_ReelExecuter_progressRotate
+        {
+            public static MethodBase? TargetMethod()
+            {
+                return AccessTools.Method(typeof(ReelExecuter), "progressRotate", new[] { typeof(int) });
+            }
+
+            [HarmonyPrefix]
+            public static void Prefix(ReelExecuter __instance)
+            {
+                if (__instance == null) return;
+                var cfg = AICModConfig.Current;
+                if (!cfg.EnableBestReelReward) return;
+
+                var etype = __instance.getEType();
+                if (etype == ReelExecuter.ETYPE.ITEMKIND)
+                {
+                    if (cfg.ReelSlowFirstItem)
+                    {
+                        // 正常转速为 1f / 9f (~0.1111)，放慢约 5 倍至 1f / 45f (~0.0222)，便于看清候选并手动选择
+                        ReflectionHelper.SetValue(__instance, 1f / 45f, "reel_speed");
+                    }
+                }
+            }
+        }
+
+        // 2. 自动抉择推进：挂钩 UiReelManager.run，在自动抉择开启时自动切为 AUTO 推进，关闭时保留完全手动停盘
+        [HarmonyPatch]
+        public static class Patch_UiReelManager_run
+        {
+            public static MethodBase? TargetMethod()
+            {
+                return AccessTools.Method(typeof(UiReelManager), "run", new[] { typeof(int) });
+            }
+
+            [HarmonyPrefix]
+            public static void Prefix(UiReelManager __instance)
+            {
+                if (__instance == null) return;
+                var cfg = AICModConfig.Current;
+                if (!cfg.EnableBestReelReward) return;
+
+                var mstt = ReflectionHelper.GetValue<ReelManager.MSTATE>(__instance, "mstt");
+                if (cfg.ReelAutoDecideBest)
+                {
+                    if (mstt == ReelManager.MSTATE.OPENING)
+                    {
+                        ReflectionHelper.SetValue(__instance, ReelManager.MSTATE.OPENING_AUTO, "mstt");
+                    }
+                    __instance.autodecide_progressable = true;
+                }
+                else
+                {
+                    if (mstt == ReelManager.MSTATE.OPENING_AUTO)
+                    {
+                        ReflectionHelper.SetValue(__instance, ReelManager.MSTATE.OPENING, "mstt");
+                    }
+                    __instance.autodecide_progressable = false;
+                }
+            }
+        }
+
+        // 3. 挂钩 ReelExecuter.decideRotate: 强制锁定最优物品与最优升级效果槽位
         [HarmonyPatch]
         public static class Patch_ReelExecuter_decideRotate
         {
@@ -21,7 +85,9 @@ namespace AICMod.Patches
             public static void Prefix(ReelExecuter __instance, ref bool randomise)
             {
                 if (__instance == null) return;
-                if (!AICModConfig.Current.EnableBestReelReward) return;
+                var cfg = AICModConfig.Current;
+                if (!cfg.EnableBestReelReward) return;
+                if (!cfg.ReelAutoDecideBest) return; // 若未开启“自动抉择”，则保留玩家纯手动卡点/随机结果
 
                 var acontent = ReflectionHelper.GetValue<string[]>(__instance, "Acontent");
                 if (acontent == null)
@@ -73,16 +139,17 @@ namespace AICMod.Patches
                 }
                 else
                 {
-                    // 获取当前已选中的物品（用于词条动态收益评估）
+                    // 获取当前首盘已选中的物品信息（用于评估当前是否已达到 5 星 / 满星）
                     var reelIk = ReflectionHelper.GetValue<ReelExecuter>(ui, "ReelIK");
                     var currentIkRow = reelIk?.IKRow;
+                    bool isRandomReel = etype == ReelExecuter.ETYPE.RANDOM;
 
-                    // 词条盘：优先选择数量翻倍(COUNT_MUL2)、品质+4/+3、数量+5/+3等最佳强化词条
+                    // 词条盘：根据规则选出最优词条（若已达 5 星且出现随机盘优先翻倍）
                     int maxScore = -1;
                     for (int i = 0; i < acontent.Length; i++)
                     {
                         string s = acontent[i] ?? string.Empty;
-                        int score = GetEffectScore(s, currentIkRow);
+                        int score = GetEffectScore(s, currentIkRow, isRandomReel);
                         if (score > maxScore)
                         {
                             maxScore = score;
@@ -95,26 +162,9 @@ namespace AICMod.Patches
                 ReflectionHelper.SetValue(__instance, (float)bestIndex, "content_id");
                 randomise = false;
             }
-
-            [HarmonyPostfix]
-            public static void Postfix(ReelExecuter __instance)
-            {
-                if (__instance == null) return;
-                if (!AICModConfig.Current.EnableBestReelReward) return;
-
-                // 若已生成结算物品行，保证星级拉至 4 星且保底数量充裕
-                if (__instance.IKRow != null)
-                {
-                    __instance.IKRow.grade = 4;
-                    if (__instance.IKRow.count < 5)
-                    {
-                        __instance.IKRow.count = 5;
-                    }
-                }
-            }
         }
 
-        // 2. 挂钩 ReelExecuter.applyEffectToIK: 确保结算时词条与金币收益最大化
+        // 4. 挂钩 ReelExecuter.applyEffectToIK: 确保结算时金币收益正常入账
         [HarmonyPatch]
         public static class Patch_ReelExecuter_applyEffectToIK
         {
@@ -129,80 +179,75 @@ namespace AICMod.Patches
                 if (__instance == null) return;
                 if (!AICModConfig.Current.EnableBestReelReward) return;
 
-                if (__instance.IKRow != null)
-                {
-                    __instance.IKRow.grade = 4;
-                    if (__instance.IKRow.count < 5)
-                    {
-                        __instance.IKRow.count = 5;
-                    }
-                }
-
                 var ui = ReflectionHelper.GetValue<UiReelManager>(__instance, "Ui");
                 if (ui != null && ui.added_money > 0)
                 {
-                    ui.added_money = Math.Max(ui.added_money, 9999);
+                    ui.added_money = Math.Max(ui.added_money, 1000);
                 }
             }
         }
 
-        private static int GetEffectScore(string s, NelItemEntry? ikRow = null)
+        private static int GetEffectScore(string s, NelItemEntry? ikRow, bool isRandomReel)
         {
+            // 游戏中 grade 范围为 0..4，其中 4 即为第 5 档最高星级（5★满星）
+            bool is5Star = ikRow != null && ikRow.grade >= 4;
+
             if (Enum.TryParse<ReelExecuter.EFFECT>(s, true, out var eff))
             {
+                // 核心规则：如果已经 5 星，如果出现随机盘（RANDOM）优先翻倍！
+                if (isRandomReel)
+                {
+                    if (is5Star)
+                    {
+                        // 已满 5 星：绝对优先数量翻倍 COUNT_MUL2
+                        if (eff == ReelExecuter.EFFECT.COUNT_MUL2) return 5000;
+                        // 品质已达上限，加星词条完全溢出失效
+                        if (eff == ReelExecuter.EFFECT.GRADE4 || eff == ReelExecuter.EFFECT.GRADE3 ||
+                            eff == ReelExecuter.EFFECT.GRADE2 || eff == ReelExecuter.EFFECT.GRADE1) return 0;
+                        if (eff == ReelExecuter.EFFECT.COUNT_ADD3) return 800;
+                        if (eff == ReelExecuter.EFFECT.COUNT_ADD2) return 600;
+                        if (eff == ReelExecuter.EFFECT.COUNT_ADD1) return 400;
+                        if (eff == ReelExecuter.EFFECT.ADD_MONEY100) return 700;
+                    }
+                    else
+                    {
+                        // 未满 5 星：随机盘优先选 GRADE3 快速拉满星级，其次翻倍/增加数量
+                        if (eff == ReelExecuter.EFFECT.GRADE3) return 3000;
+                        if (eff == ReelExecuter.EFFECT.GRADE2) return 2000;
+                        if (eff == ReelExecuter.EFFECT.COUNT_MUL2) return 1500;
+                        if (eff == ReelExecuter.EFFECT.COUNT_ADD3) return 1200;
+                        if (eff == ReelExecuter.EFFECT.COUNT_ADD2) return 900;
+                        if (eff == ReelExecuter.EFFECT.GRADE1) return 800;
+                        if (eff == ReelExecuter.EFFECT.COUNT_ADD1) return 600;
+                        if (eff == ReelExecuter.EFFECT.ADD_MONEY100) return 700;
+                    }
+                }
+
+                // 常规非随机盘判定
                 switch (eff)
                 {
-                    case ReelExecuter.EFFECT.COUNT_MUL2:
-                        // 翻倍收益评估：基础数量越多，翻倍价值呈指数级爆发
-                        if (ikRow != null)
-                        {
-                            if (ikRow.count >= 3) return 1000; // 净增 >= 3 个，全场最高
-                            if (ikRow.count == 2) return 800;  // 净增 2 个
-                            return 650;                        // 净增 1 个 (稍低于固定加3)
-                        }
-                        return 1000;
-
-                    case ReelExecuter.EFFECT.GRADE4:
-                        // 品质直接拉满至最高4星顶级品质
-                        if (ikRow != null && ikRow.grade >= 4) return 10; // 若已满星则无实际收益
-                        return 950;
-
-                    case ReelExecuter.EFFECT.GRADE3:
-                        // 品质+3星
-                        if (ikRow != null)
-                        {
-                            if (ikRow.grade >= 4) return 10;  // 已满星
-                            if (ikRow.grade == 3) return 450; // 溢出2星，实际收益+1星
-                            return 920;                       // 0~1星直接提升3星，质变级收益
-                        }
-                        return 900;
-
+                    case ReelExecuter.EFFECT.COUNT_MUL2: return 1000;
+                    case ReelExecuter.EFFECT.GRADE4: return 950;
+                    case ReelExecuter.EFFECT.GRADE3: return 900;
                     case ReelExecuter.EFFECT.COUNT_ADD5: return 850;
                     case ReelExecuter.EFFECT.COUNT_ADD4: return 800;
                     case ReelExecuter.EFFECT.COUNT_ADD3: return 750;
                     case ReelExecuter.EFFECT.ADD_MONEY100: return 700;
-
-                    case ReelExecuter.EFFECT.GRADE2:
-                        if (ikRow != null && ikRow.grade >= 4) return 10;
-                        return 600;
-
+                    case ReelExecuter.EFFECT.GRADE2: return 600;
                     case ReelExecuter.EFFECT.COUNT_ADD2: return 550;
                     case ReelExecuter.EFFECT.ADD_MONEY30: return 500;
                     case ReelExecuter.EFFECT.ADD_MONEY20: return 450;
-
-                    case ReelExecuter.EFFECT.GRADE1:
-                        if (ikRow != null && ikRow.grade >= 4) return 10;
-                        return 400;
-
+                    case ReelExecuter.EFFECT.GRADE1: return 400;
                     case ReelExecuter.EFFECT.COUNT_ADD1: return 350;
                     case ReelExecuter.EFFECT.ADD_MONEY10: return 300;
-                    case ReelExecuter.EFFECT.COUNT_MUL1: return 10; // 1倍等于不翻倍，垫底！
+                    case ReelExecuter.EFFECT.COUNT_MUL1: return 10; // 1倍等于不翻倍，必须垫底！
                     case ReelExecuter.EFFECT.COUNT_ADD0: return 5;
                     case ReelExecuter.EFFECT.GRADE0: return 5;
                     default: return 50;
                 }
             }
 
+            if (isRandomReel && is5Star && s.IndexOf("COUNT_MUL2", StringComparison.OrdinalIgnoreCase) >= 0) return 5000;
             if (s.IndexOf("COUNT_MUL2", StringComparison.OrdinalIgnoreCase) >= 0) return 1000;
             if (s.IndexOf("GRADE4", StringComparison.OrdinalIgnoreCase) >= 0) return 950;
             if (s.IndexOf("GRADE3", StringComparison.OrdinalIgnoreCase) >= 0) return 900;

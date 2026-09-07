@@ -1210,7 +1210,7 @@ namespace AICTrainer.ViewModels
             get => Config.NoelAttackScale;
             set
             {
-                float val = (float)Math.Round(Math.Clamp(value, 1.0f, 10.0f), 1);
+                float val = (float)Math.Round(Math.Clamp(value, 0.0f, 10.0f), 1);
                 if (Math.Abs(Config.NoelAttackScale - val) > 0.001f)
                 {
                     Config.NoelAttackScale = val;
@@ -1253,16 +1253,51 @@ namespace AICTrainer.ViewModels
             }
         }
 
+        private string _damageMultiplierText = string.Empty;
+        public string DamageMultiplierText
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_damageMultiplierText))
+                {
+                    _damageMultiplierText = Config.DamageMultiplier.ToString("0.##");
+                }
+                return _damageMultiplierText;
+            }
+            set
+            {
+                if (_damageMultiplierText != value)
+                {
+                    _damageMultiplierText = value;
+                    OnPropertyChanged();
+                    if (float.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float parsed) ||
+                        float.TryParse(value, out parsed))
+                    {
+                        if (parsed >= 0f)
+                        {
+                            float safeVal = Math.Min(10000000.0f, parsed);
+                            Config.DamageMultiplier = safeVal;
+                            OnPropertyChanged(nameof(DamageMultiplier));
+                            if (IsSaveConfigEnabled) SaveConfigSettings();
+                            PushConfig();
+                        }
+                    }
+                }
+            }
+        }
+
         public float DamageMultiplier
         {
             get => Config.DamageMultiplier;
             set
             {
-                float val = Math.Clamp(value, 0.1f, 100.0f);
+                float val = Math.Max(0.0f, Math.Min(10000000.0f, value));
                 if (Math.Abs(Config.DamageMultiplier - val) > 0.001f)
                 {
                     Config.DamageMultiplier = val;
+                    _damageMultiplierText = val.ToString("0.##");
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(DamageMultiplierText));
                     if (IsSaveConfigEnabled) SaveConfigSettings();
                     PushConfig();
                 }
@@ -1280,8 +1315,51 @@ namespace AICTrainer.ViewModels
                     Config.EnableBestReelReward = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(CategoryActiveStatsText));
+                    if (IsSaveConfigEnabled) SaveConfigSettings();
                     PushConfig();
                 }
+            }
+        }
+
+        public bool IsReelSlowFirstItem
+        {
+            get => Config.ReelSlowFirstItem;
+            set
+            {
+                if (Config.ReelSlowFirstItem != value)
+                {
+                    Config.ReelSlowFirstItem = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ReelConfigSummaryText));
+                    if (IsSaveConfigEnabled) SaveConfigSettings();
+                    PushConfig();
+                }
+            }
+        }
+
+        public bool IsReelAutoDecideBest
+        {
+            get => Config.ReelAutoDecideBest;
+            set
+            {
+                if (Config.ReelAutoDecideBest != value)
+                {
+                    Config.ReelAutoDecideBest = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ReelConfigSummaryText));
+                    if (IsSaveConfigEnabled) SaveConfigSettings();
+                    PushConfig();
+                }
+            }
+        }
+
+        public string ReelConfigSummaryText
+        {
+            get
+            {
+                string slowText = IsReelSlowFirstItem ? "首轮减速:开" : "首轮减速:关";
+                string autoText = IsReelAutoDecideBest ? "自动抉择:开" : "自动抉择:关";
+                return $"配置: {slowText} | {autoText} | 5★随机盘优先翻倍";
             }
         }
 

@@ -185,6 +185,8 @@ namespace AICShared
 
         // 38. 宝箱轮盘必定最佳
         public bool EnableBestReelReward;
+        public bool ReelSlowFirstItem; // 放慢首轮物品选择
+        public bool ReelAutoDecideBest = true; // 自动抉择最佳选择 (默认开启)
 
         public ModConfigDto Clone()
         {
@@ -269,6 +271,8 @@ namespace AICShared
             EnableDamageMultiplier = other.EnableDamageMultiplier;
             DamageMultiplier = other.DamageMultiplier;
             EnableBestReelReward = other.EnableBestReelReward;
+            ReelSlowFirstItem = other.ReelSlowFirstItem;
+            ReelAutoDecideBest = other.ReelAutoDecideBest;
         }
     }
 

@@ -28,8 +28,26 @@ namespace AICMod.Patches
             }
             else if (cfg.EnableDamageMultiplier && cfg.DamageMultiplier > 0f && Math.Abs(cfg.DamageMultiplier - 1.0f) > 0.001f)
             {
-                __result *= cfg.DamageMultiplier;
+                __result = SafeMultiplyDamageRatio(__result, cfg.DamageMultiplier);
             }
+        }
+
+        public static float SafeMultiplyDamageRatio(float baseRatio, float multiplier)
+        {
+            if (multiplier <= 0f) return 0f;
+            double scaled = (double)baseRatio * multiplier;
+            if (scaled > 2000000000.0) scaled = 2000000000.0;
+            if (double.IsNaN(scaled) || double.IsInfinity(scaled)) scaled = 2000000000.0;
+            return (float)scaled;
+        }
+
+        public static int SafeMultiplyDamageInt(int baseDamage, float multiplier)
+        {
+            if (multiplier <= 0f) return 0;
+            double scaled = (double)baseDamage * multiplier;
+            if (scaled > 2000000000.0) scaled = 2000000000.0;
+            if (double.IsNaN(scaled) || double.IsInfinity(scaled)) scaled = 2000000000.0;
+            return (int)Math.Max(1, Math.Round(scaled));
         }
 
         [ThreadStatic]
@@ -104,19 +122,19 @@ namespace AICMod.Patches
                     // 若攻击指定固定伤害 (fix_damage)，此时 applyHpDamageRatio 不会参与运算，因此直接放大 Atk 的基础伤害
                     if (Atk.fix_damage)
                     {
-                        Atk.hpdmg0 = (int)Math.Max(1, Math.Round(Atk.hpdmg0 * cfg.DamageMultiplier));
+                        Atk.hpdmg0 = SafeMultiplyDamageInt(Atk.hpdmg0, cfg.DamageMultiplier);
                         if (Atk.hpdmg_current != -1000)
                         {
-                            Atk.hpdmg_current = (int)Math.Max(1, Math.Round(Atk.hpdmg_current * cfg.DamageMultiplier));
+                            Atk.hpdmg_current = SafeMultiplyDamageInt(Atk.hpdmg_current, cfg.DamageMultiplier);
                         }
                     }
                     if (Atk.mpdmg0 > 0)
                     {
-                        Atk.mpdmg0 = (int)Math.Max(1, Math.Round(Atk.mpdmg0 * cfg.DamageMultiplier));
+                        Atk.mpdmg0 = SafeMultiplyDamageInt(Atk.mpdmg0, cfg.DamageMultiplier);
                     }
                     if (Atk.mpdmg_current != -1000 && Atk.mpdmg_current > 0)
                     {
-                        Atk.mpdmg_current = (int)Math.Max(1, Math.Round(Atk.mpdmg_current * cfg.DamageMultiplier));
+                        Atk.mpdmg_current = SafeMultiplyDamageInt(Atk.mpdmg_current, cfg.DamageMultiplier);
                     }
                 }
             }
@@ -169,10 +187,10 @@ namespace AICMod.Patches
 
                 if (cfg.EnableDamageMultiplier && cfg.DamageMultiplier > 0f && Math.Abs(cfg.DamageMultiplier - 1.0f) > 0.001f)
                 {
-                    val = (int)Math.Max(1, Math.Round(val * cfg.DamageMultiplier));
+                    val = SafeMultiplyDamageInt(val, cfg.DamageMultiplier);
                     if (mpdmg > 0)
                     {
-                        mpdmg = (int)Math.Max(1, Math.Round(mpdmg * cfg.DamageMultiplier));
+                        mpdmg = SafeMultiplyDamageInt(mpdmg, cfg.DamageMultiplier);
                     }
                 }
             }
@@ -533,8 +551,8 @@ namespace AICMod.Patches
                 var cfg = AICModConfig.Current;
                 if (!cfg.EnableNoelAttackScale) return;
 
-                float scale = cfg.NoelAttackScale;
-                if (scale <= 1.0f) return;
+                float scale = Math.Max(0f, Math.Min(10f, cfg.NoelAttackScale));
+                if (Math.Abs(scale - 1.0f) < 0.001f) return;
 
                 if (!IsNoelAttack(__instance, out var kind)) return;
                 if (cfg.NoelAttackOnlyMelee && !IsMeleeKind(kind)) return;
@@ -591,16 +609,18 @@ namespace AICMod.Patches
                 __state = default;
                 if (Mg == null) return;
                 var cfg = AICModConfig.Current;
-                if (!cfg.EnableNoelAttackScale || cfg.NoelAttackScale <= 1.0f) return;
+                if (!cfg.EnableNoelAttackScale) return;
+                float scale = Math.Max(0f, Math.Min(10f, cfg.NoelAttackScale));
+                if (Math.Abs(scale - 1.0f) < 0.001f) return;
 
                 bool isPr = Mg.Caster is PR || Mg.Caster is M2MoverPr;
                 if (!isPr) return;
                 if (cfg.NoelAttackOnlyMelee && !Patch_M2Ray_Cast.IsMeleeKind(Mg.kind)) return;
 
                 __state = (true, Mg.sx, Mg.sy, Mg.sz);
-                Mg.sx *= cfg.NoelAttackScale;
-                Mg.sy *= cfg.NoelAttackScale;
-                Mg.sz *= cfg.NoelAttackScale;
+                Mg.sx *= scale;
+                Mg.sy *= scale;
+                Mg.sz *= scale;
             }
 
             [HarmonyPostfix]

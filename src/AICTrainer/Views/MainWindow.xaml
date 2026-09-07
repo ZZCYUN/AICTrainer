@@ -1781,7 +1781,7 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="倍率: " Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
-                                        <Slider Grid.Column="1" Minimum="1.0" Maximum="10.0" SmallChange="0.1" LargeChange="0.5" TickFrequency="0.1" IsSnapToTickEnabled="True" Value="{Binding NoelAttackScaleMultiplier, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernSlider}" VerticalAlignment="Center" Margin="6,0,8,0"/>
+                                        <Slider Grid.Column="1" Minimum="0.0" Maximum="10.0" SmallChange="0.1" LargeChange="0.5" TickFrequency="0.1" IsSnapToTickEnabled="True" Value="{Binding NoelAttackScaleMultiplier, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernSlider}" VerticalAlignment="Center" Margin="6,0,8,0"/>
                                         <TextBlock Grid.Column="2" Text="{Binding NoelAttackScaleMultiplier, StringFormat='{}{0:F1}x'}" Foreground="{StaticResource AccentCyan}" FontWeight="Bold" FontSize="12" Width="38" TextAlignment="Right" VerticalAlignment="Center"/>
                                     </Grid>
                                     <!-- 第2行：仅限近战筛选与开启总开关 -->
@@ -1832,16 +1832,16 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <!-- 第1行：滑块与实时倍率数值 -->
+                                    <!-- 第1行：输入框与实时倍率数值 -->
                                     <Grid Grid.Row="0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="倍率: " Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
-                                        <Slider Grid.Column="1" Style="{StaticResource ModernSlider}" Minimum="1.0" Maximum="20.0" SmallChange="0.5" LargeChange="1.0" Value="{Binding DamageMultiplier, Mode=TwoWay}" Margin="6,0,8,0" IsMoveToPointEnabled="True"/>
-                                        <TextBlock Grid.Column="2" Text="{Binding DamageMultiplier, StringFormat='{}{0:F1}x'}" Foreground="{StaticResource AccentCyan}" FontWeight="Bold" FontSize="12" Width="40" TextAlignment="Right" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="1" Width="80" Text="{Binding DamageMultiplierText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Margin="6,0,6,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="x (无上限防溢出)" Foreground="{StaticResource AccentCyan}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                     </Grid>
                                     <!-- 第2行：功能开关 -->
                                     <Grid Grid.Row="1" Margin="0,8,0,0">
@@ -2560,7 +2560,7 @@
                         </Grid>
                     </Border>
                     <!-- 宝箱轮盘必定最佳 -->
-                    <Border Visibility="{Binding Vis_BestReelReward}" Style="{StaticResource FeatureCard}">
+                    <Border Visibility="{Binding Vis_BestReelReward}" Style="{StaticResource FeatureCard}" MouseLeftButtonUp="OnReelCardClick">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -2585,6 +2585,7 @@
                                         <Border Margin="8,0,0,0" Background="#1E293B" CornerRadius="6" Padding="6,1">
                                             <TextBlock Text="保底最优/4星品质" Foreground="#38BDF8" FontSize="11"/>
                                         </Border>
+                                        <Button Content="⚙️ 轮盘配置" Style="{StaticResource PillButton}" Margin="8,0,0,0" Padding="6,2" FontSize="11" Click="OnReelConfigClick" ToolTip="打开宝箱轮盘详细配置弹窗"/>
                                     </StackPanel>
                                     <Button HorizontalAlignment="Right" Style="{StaticResource StarButton}" Command="{Binding ToggleFavCommand}" CommandParameter="BestReelReward" Background="{Binding StarBg_BestReelReward}" BorderBrush="{Binding StarBorder_BestReelReward}">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -2598,7 +2599,10 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="开宝箱轮盘抽奖必停在稀有度最高槽位，品质升为4星且数量与金币拉满" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <TextBlock Text="开宝箱轮盘抽奖必停在稀有度最高槽位，独占道具与高星词条优先" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding ReelConfigSummaryText}" Foreground="#38BDF8" FontSize="11" Margin="0,2,0,0"/>
+                                    </StackPanel>
                                     <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" Content="最佳开启" IsChecked="{Binding IsBestReelRewardEnabled}"/>
                                 </Grid>
                             </Grid>

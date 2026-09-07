@@ -111,6 +111,38 @@ namespace AICTrainer.Views
             dlg.ShowDialog();
         }
 
+        private void OnReelConfigClick(object sender, RoutedEventArgs e)
+        {
+            OpenReelConfigDialog();
+        }
+
+        private void OnReelCardClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is DependencyObject dep)
+            {
+                var parent = dep;
+                while (parent != null && parent != sender)
+                {
+                    if (parent is System.Windows.Controls.CheckBox || parent is System.Windows.Controls.Button)
+                    {
+                        return;
+                    }
+                    parent = System.Windows.Media.VisualTreeHelper.GetParent(parent);
+                }
+            }
+            OpenReelConfigDialog();
+        }
+
+        private void OpenReelConfigDialog()
+        {
+            var dlg = new ReelConfigDialog
+            {
+                Owner = this,
+                DataContext = _vm
+            };
+            dlg.ShowDialog();
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             if (_vm.IsSaveConfigEnabled)
