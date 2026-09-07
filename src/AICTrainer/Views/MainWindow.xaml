@@ -417,40 +417,6 @@
             </Setter>
         </Style>
 
-        <!-- 顶栏 GitHub 开源主页胶囊按钮 -->
-        <Style x:Key="GitHubTitleButton" TargetType="Button">
-            <Setter Property="Height" Value="24"/>
-            <Setter Property="Background" Value="#1A1A2A"/>
-            <Setter Property="Foreground" Value="#9CA3AF"/>
-            <Setter Property="BorderBrush" Value="#2E2E48"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,0,10,0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" 
-                                BorderBrush="{TemplateBinding BorderBrush}" 
-                                BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="12">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#25253D"/>
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#00F0FF"/>
-                                <Setter Property="Foreground" Value="#00F0FF"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#151525"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
         <!-- 侧边栏 GitHub 开源卡片按钮 -->
         <Style x:Key="GitHubSidebarButton" TargetType="Button">
             <Setter Property="Background" Value="#141420"/>
@@ -512,16 +478,8 @@
                     <!-- 中间可拖动占位 -->
                     <Rectangle Grid.Column="1" Fill="Transparent"/>
 
-                    <!-- 右侧窗口控制按钮 (GitHub开源、最小化、关闭) -->
+                    <!-- 右侧窗口控制按钮 (最小化、关闭) -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Style="{StaticResource GitHubTitleButton}" Margin="0,0,8,0" Click="OnOpenGitHubRepo" ToolTip="访问 GitHub 开源仓库 (支持与更新)">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Path Data="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" 
-                                      Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" 
-                                      Stretch="Uniform" Width="12" Height="12" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                <TextBlock Text="GitHub 开源" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
                         <Button Style="{StaticResource WindowCtrlButton}" Content="🗕" Click="OnMinimizeClick" ToolTip="最小化"/>
                         <Button Style="{StaticResource WindowCloseButton}" Content="✕" Click="OnCloseClick" ToolTip="退出修改器"/>
                     </StackPanel>
