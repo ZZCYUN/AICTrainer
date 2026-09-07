@@ -44,6 +44,24 @@ namespace AICTrainer.Views
             Close();
         }
 
+        private void OnOpenGitHubRepo(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "https://github.com/ZZCYUN/AICTrainer",
+                    UseShellExecute = true
+                });
+            }
+            catch { }
+        }
+
+        private void OnOpenGitHubRepoMouse(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            OnOpenGitHubRepo(sender, e);
+        }
+
         private async void OnInjectClick(object sender, RoutedEventArgs e)
         {
             await _vm.InjectAndConnectAsync();
