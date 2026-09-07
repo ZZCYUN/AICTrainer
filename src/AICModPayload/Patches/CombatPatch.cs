@@ -26,7 +26,7 @@ namespace AICMod.Patches
             {
                 __result = Math.Max(__result, 100f);
             }
-            else if (cfg.EnableDamageMultiplier && cfg.DamageMultiplier > 0f && Math.Abs(cfg.DamageMultiplier - 1.0f) > 0.001f)
+            else if (!_insideApplyDamage && cfg.EnableDamageMultiplier && cfg.DamageMultiplier > 0f && Math.Abs(cfg.DamageMultiplier - 1.0f) > 0.001f)
             {
                 __result = SafeMultiplyDamageRatio(__result, cfg.DamageMultiplier);
             }
@@ -62,7 +62,7 @@ namespace AICMod.Patches
             public int mpdmg_current;
         }
 
-        // 1b. 伤害倍率修改与一击秒杀：挂钩 NelEnemy.applyDamage 确保秒杀、固定伤害(fix_damage)及 MP 伤害完全同步
+        // 1b. 伤害倍率修改与一击秒杀：挂钩 NelEnemy.applyDamage 确保秒杀、普通攻击、固定伤害(fix_damage)及 MP 伤害在 Boss 与小兵上计算与飘字均完全同步
         [HarmonyPatch]
         public static class Patch_NelEnemy_applyDamage
         {
@@ -119,14 +119,11 @@ namespace AICMod.Patches
                         mpdmg_current = Atk.mpdmg_current
                     };
 
-                    // 若攻击指定固定伤害 (fix_damage)，此时 applyHpDamageRatio 不会参与运算，因此直接放大 Atk 的基础伤害
-                    if (Atk.fix_damage)
+                    // 无条件放大 Atk 的基础伤害与当前伤害（涵盖普攻与固定伤害），彻底解决 Boss 晕眩阶段或重写 applyHpDamageRatio 导致的飘字不放大问题
+                    Atk.hpdmg0 = SafeMultiplyDamageInt(Atk.hpdmg0, cfg.DamageMultiplier);
+                    if (Atk.hpdmg_current != -1000)
                     {
-                        Atk.hpdmg0 = SafeMultiplyDamageInt(Atk.hpdmg0, cfg.DamageMultiplier);
-                        if (Atk.hpdmg_current != -1000)
-                        {
-                            Atk.hpdmg_current = SafeMultiplyDamageInt(Atk.hpdmg_current, cfg.DamageMultiplier);
-                        }
+                        Atk.hpdmg_current = SafeMultiplyDamageInt(Atk.hpdmg_current, cfg.DamageMultiplier);
                     }
                     if (Atk.mpdmg0 > 0)
                     {

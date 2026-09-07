@@ -8,7 +8,7 @@ namespace AICMod.Patches
 {
     public static class ReelPatch
     {
-        // 1. 放慢首轮物品选择：挂钩 ReelExecuter.progressRotate
+        // 1. 转速控制（区分首轮慢速与加成轮减速）：挂钩 ReelExecuter.progressRotate
         [HarmonyPatch]
         public static class Patch_ReelExecuter_progressRotate
         {
@@ -27,16 +27,24 @@ namespace AICMod.Patches
                 var etype = __instance.getEType();
                 if (etype == ReelExecuter.ETYPE.ITEMKIND)
                 {
-                    if (cfg.ReelSlowFirstItem)
+                    if (cfg.ReelFirstSlow)
                     {
-                        // 正常转速为 1f / 9f (~0.1111)，放慢约 5 倍至 1f / 45f (~0.0222)，便于看清候选并手动选择
+                        // 正常转速为 1f / 9f (~0.1111)，首轮放慢约 5 倍至 1f / 45f (~0.0222)，便于看清候选并手动选择
+                        ReflectionHelper.SetValue(__instance, 1f / 45f, "reel_speed");
+                    }
+                }
+                else
+                {
+                    if (cfg.ReelBonusSlow)
+                    {
+                        // 加成轮放慢约 5 倍至 1f / 45f，便于看清加成词条手动停盘
                         ReflectionHelper.SetValue(__instance, 1f / 45f, "reel_speed");
                     }
                 }
             }
         }
 
-        // 2. 自动抉择推进：挂钩 UiReelManager.run，在自动抉择开启时自动切为 AUTO 推进，关闭时保留完全手动停盘
+        // 2. 自动推进控制（区分首轮自动选择与加成轮自动选择）：挂钩 UiReelManager.run
         [HarmonyPatch]
         public static class Patch_UiReelManager_run
         {
@@ -52,8 +60,12 @@ namespace AICMod.Patches
                 var cfg = AICModConfig.Current;
                 if (!cfg.EnableBestReelReward) return;
 
+                int rotateDecideId = ReflectionHelper.GetValue<int>(__instance, "rotate_decide_id");
+                // rotate_decide_id == -1 为首轮抽取物品；>= 0 为加成轮
+                bool autoDecide = (rotateDecideId == -1) ? cfg.ReelFirstAutoDecide : cfg.ReelBonusAutoDecide;
+
                 var mstt = ReflectionHelper.GetValue<ReelManager.MSTATE>(__instance, "mstt");
-                if (cfg.ReelAutoDecideBest)
+                if (autoDecide)
                 {
                     if (mstt == ReelManager.MSTATE.OPENING)
                     {
@@ -72,7 +84,7 @@ namespace AICMod.Patches
             }
         }
 
-        // 3. 挂钩 ReelExecuter.decideRotate: 强制锁定最优物品与最优升级效果槽位
+        // 3. 挂钩 ReelExecuter.decideRotate: 根据首轮/加成轮自动选择配置，分别锁定最优物品与最优词条
         [HarmonyPatch]
         public static class Patch_ReelExecuter_decideRotate
         {
@@ -87,7 +99,10 @@ namespace AICMod.Patches
                 if (__instance == null) return;
                 var cfg = AICModConfig.Current;
                 if (!cfg.EnableBestReelReward) return;
-                if (!cfg.ReelAutoDecideBest) return; // 若未开启“自动抉择”，则保留玩家纯手动卡点/随机结果
+
+                var etype = __instance.getEType();
+                bool autoDecide = (etype == ReelExecuter.ETYPE.ITEMKIND) ? cfg.ReelFirstAutoDecide : cfg.ReelBonusAutoDecide;
+                if (!autoDecide) return; // 若未开启该轮次的“自动抉择”，则保留玩家纯手动卡点/随机结果
 
                 var acontent = ReflectionHelper.GetValue<string[]>(__instance, "Acontent");
                 if (acontent == null)
@@ -101,7 +116,6 @@ namespace AICMod.Patches
 
                 var ui = ReflectionHelper.GetValue<UiReelManager>(__instance, "Ui");
                 int bestIndex = 0;
-                var etype = __instance.getEType();
 
                 if (etype == ReelExecuter.ETYPE.ITEMKIND)
                 {

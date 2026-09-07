@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:h="clr-namespace:AICTrainer.Helpers"
         Title="宝箱轮盘高级配置"
-        Width="490" Height="430"
+        Width="510" Height="475"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -86,9 +86,9 @@
             </Grid>
 
             <!-- 2. 内容选项区 -->
-            <StackPanel Grid.Row="1" Margin="0,0,0,14">
-                <!-- 选项 1：放慢首轮物品选择 -->
-                <Border Background="#161828" BorderBrush="#2563EB" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="0,0,0,10">
+            <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                <!-- 选项 1：首轮自动选择 -->
+                <Border Background="#161828" BorderBrush="#2563EB" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -96,19 +96,19 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
-                                <TextBlock Text="🐌 放慢首轮物品选择" Foreground="#60A5FA" FontWeight="Bold" FontSize="13"/>
+                                <TextBlock Text="🎯 首轮自动选择" Foreground="#60A5FA" FontWeight="Bold" FontSize="13"/>
                                 <Border Margin="8,0,0,0" Background="#1E3A8A" CornerRadius="4" Padding="5,1">
-                                    <TextBlock Text="降低转速5倍" Foreground="#93C5FD" FontSize="10"/>
+                                    <TextBlock Text="自动锁最优" Foreground="#93C5FD" FontSize="10"/>
                                 </Border>
                             </StackPanel>
-                            <TextBlock Text="首轮物品抽取盘转速大幅减慢，方便看清候选并手动选择心仪物品" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
+                            <TextBlock Text="首轮物品抽取盘自动判定并停在最高稀有度/独占道具槽位；关闭后需玩家手动停盘" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
                         </StackPanel>
-                        <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" IsChecked="{Binding IsReelSlowFirstItem}" VerticalAlignment="Center"/>
+                        <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" IsChecked="{Binding IsReelFirstAutoDecide}" VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
 
-                <!-- 选项 2：自动抉择最佳选择 -->
-                <Border Background="#1A1828" BorderBrush="#7C3AED" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="0,0,0,10">
+                <!-- 选项 2：首轮慢速 -->
+                <Border Background="#141E28" BorderBrush="#0D9488" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -116,26 +116,55 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
-                                <TextBlock Text="⚡ 自动抉择最佳选择" Foreground="#A78BFA" FontWeight="Bold" FontSize="13"/>
-                                <Border Margin="8,0,0,0" Background="#3B0764" CornerRadius="4" Padding="5,1">
-                                    <TextBlock Text="智能锁定" Foreground="#DDD6FE" FontSize="10"/>
+                                <TextBlock Text="🐌 首轮慢速" Foreground="#2DD4BF" FontWeight="Bold" FontSize="13"/>
+                                <Border Margin="8,0,0,0" Background="#134E4A" CornerRadius="4" Padding="5,1">
+                                    <TextBlock Text="降低转速5倍" Foreground="#99F6E4" FontSize="10"/>
                                 </Border>
                             </StackPanel>
-                            <TextBlock Text="轮盘自动锁定最高价值槽位（独占绝版道具/任务品，词条盘最高加成）；关闭后由玩家手动停盘" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
+                            <TextBlock Text="首轮物品抽取盘转速放慢约 5 倍，便于清晰看清候选道具并从容手动停盘" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
                         </StackPanel>
-                        <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" IsChecked="{Binding IsReelAutoDecideBest}" VerticalAlignment="Center"/>
+                        <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" IsChecked="{Binding IsReelFirstSlow}" VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
 
-                <!-- 提示：5星随机盘翻倍策略提示 -->
-                <Border Background="#1C1E24" BorderBrush="#374151" BorderThickness="1" CornerRadius="8" Padding="12,10">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                            <TextBlock Text="✨ 智能翻倍联动策略" Foreground="#F59E0B" FontWeight="Bold" FontSize="12"/>
+                <!-- 选项 3：加成轮减速 -->
+                <Border Background="#201C18" BorderBrush="#D97706" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                <TextBlock Text="⏱️ 加成轮减速" Foreground="#FBBF24" FontWeight="Bold" FontSize="13"/>
+                                <Border Margin="8,0,0,0" Background="#78350F" CornerRadius="4" Padding="5,1">
+                                    <TextBlock Text="降低转速5倍" Foreground="#FDE68A" FontSize="10"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="后续品质升级与词条轮盘转速放慢约 5 倍，方便看清各加成槽位手动把控时机" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
                         </StackPanel>
-                        <TextBlock Text="• 未满 5 星：大杂烩随机盘（RANDOM）优先选择品质提升（如 GRADE3+3★）以尽快冲满 5 星；" Foreground="{StaticResource TextSecondary}" FontSize="11"/>
-                        <TextBlock Text="• 已达 5 星：品质词条已完全溢出，随机盘将绝对优先锁定「数量翻倍（x2）」！" Foreground="#34D399" FontWeight="SemiBold" FontSize="11" Margin="0,2,0,0"/>
-                    </StackPanel>
+                        <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" IsChecked="{Binding IsReelBonusSlow}" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- 选项 4：加成轮自动选择 -->
+                <Border Background="#1A1828" BorderBrush="#7C3AED" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,4">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                <TextBlock Text="⚡ 加成轮自动选择" Foreground="#A78BFA" FontWeight="Bold" FontSize="13"/>
+                                <Border Margin="8,0,0,0" Background="#3B0764" CornerRadius="4" Padding="5,1">
+                                    <TextBlock Text="智能锁定最优" Foreground="#DDD6FE" FontSize="10"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="后续升级轮盘自动锁定最高加成（满5★优先数量翻倍，未满星优先升星）；关闭后手动停盘" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" IsChecked="{Binding IsReelBonusAutoDecide}" VerticalAlignment="Center"/>
+                    </Grid>
                 </Border>
             </StackPanel>
 

@@ -1321,14 +1321,14 @@ namespace AICTrainer.ViewModels
             }
         }
 
-        public bool IsReelSlowFirstItem
+        public bool IsReelFirstAutoDecide
         {
-            get => Config.ReelSlowFirstItem;
+            get => Config.ReelFirstAutoDecide;
             set
             {
-                if (Config.ReelSlowFirstItem != value)
+                if (Config.ReelFirstAutoDecide != value)
                 {
-                    Config.ReelSlowFirstItem = value;
+                    Config.ReelFirstAutoDecide = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(ReelConfigSummaryText));
                     if (IsSaveConfigEnabled) SaveConfigSettings();
@@ -1337,14 +1337,14 @@ namespace AICTrainer.ViewModels
             }
         }
 
-        public bool IsReelAutoDecideBest
+        public bool IsReelFirstSlow
         {
-            get => Config.ReelAutoDecideBest;
+            get => Config.ReelFirstSlow;
             set
             {
-                if (Config.ReelAutoDecideBest != value)
+                if (Config.ReelFirstSlow != value)
                 {
-                    Config.ReelAutoDecideBest = value;
+                    Config.ReelFirstSlow = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(ReelConfigSummaryText));
                     if (IsSaveConfigEnabled) SaveConfigSettings();
@@ -1352,14 +1352,50 @@ namespace AICTrainer.ViewModels
                 }
             }
         }
+
+        public bool IsReelBonusSlow
+        {
+            get => Config.ReelBonusSlow;
+            set
+            {
+                if (Config.ReelBonusSlow != value)
+                {
+                    Config.ReelBonusSlow = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ReelConfigSummaryText));
+                    if (IsSaveConfigEnabled) SaveConfigSettings();
+                    PushConfig();
+                }
+            }
+        }
+
+        public bool IsReelBonusAutoDecide
+        {
+            get => Config.ReelBonusAutoDecide;
+            set
+            {
+                if (Config.ReelBonusAutoDecide != value)
+                {
+                    Config.ReelBonusAutoDecide = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ReelConfigSummaryText));
+                    if (IsSaveConfigEnabled) SaveConfigSettings();
+                    PushConfig();
+                }
+            }
+        }
+
+        // 兼容旧属性别名
+        public bool IsReelSlowFirstItem { get => IsReelFirstSlow; set => IsReelFirstSlow = value; }
+        public bool IsReelAutoDecideBest { get => IsReelBonusAutoDecide; set => IsReelBonusAutoDecide = value; }
 
         public string ReelConfigSummaryText
         {
             get
             {
-                string slowText = IsReelSlowFirstItem ? "首轮减速:开" : "首轮减速:关";
-                string autoText = IsReelAutoDecideBest ? "自动抉择:开" : "自动抉择:关";
-                return $"配置: {slowText} | {autoText} | 5★随机盘优先翻倍";
+                string firstDesc = IsReelFirstAutoDecide ? "首轮自动" : (IsReelFirstSlow ? "首轮慢速" : "首轮手动");
+                string bonusDesc = IsReelBonusAutoDecide ? "加成自动" : (IsReelBonusSlow ? "加成慢速" : "加成手动");
+                return $"配置: {firstDesc} | {bonusDesc}";
             }
         }
 
