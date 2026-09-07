@@ -1458,17 +1458,38 @@ namespace AICTrainer.ViewModels
             StatusColor = "#FFAA00";
 
             string injectorError = string.Empty;
-            bool ok = await Task.Run(() =>
+            bool ok = false;
+            const int maxRetries = 6;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                return MonoInjector.InjectFromMemory(
-                    Monitor.TargetProcess.Id,
-                    payloadBytes,
-                    "AICModPayload",
-                    "AICMod",
-                    "Loader",
-                    "Init",
-                    out injectorError);
-            });
+                if (Monitor.TargetProcess == null || Monitor.TargetProcess.HasExited) return false;
+
+                ok = await Task.Run(() =>
+                {
+                    return MonoInjector.InjectFromMemory(
+                        Monitor.TargetProcess.Id,
+                        payloadBytes,
+                        "AICModPayload",
+                        "AICMod",
+                        "Loader",
+                        "Init",
+                        out injectorError);
+                });
+
+                if (ok) break;
+
+                // 若因 Mono 运行时根域未分配或 Mono 尚未加载，自动进行平滑重试
+                if (attempt < maxRetries && (injectorError.Contains("Mono环境未就绪") || injectorError.Contains("mono-2.0-bdwgc.dll")))
+                {
+                    StatusText = $"游戏Mono引擎部署中，正在重试注入 ({attempt}/{maxRetries})...";
+                    StatusColor = "#FFAA00";
+                    await Task.Delay(600);
+                }
+                else
+                {
+                    break;
+                }
+            }
 
             if (!ok)
             {

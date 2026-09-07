@@ -140,11 +140,11 @@ namespace AICTrainer.Services
                     return false;
                 }
 
-                // 检查进程启动时长，保障底层至少有 2 秒的基础初始化时间
+                // 检查进程启动时长，保障底层至少有 2.5 秒的基础初始化时间
                 var uptime = DateTime.Now - proc.StartTime;
-                if (uptime.TotalSeconds < 2.0)
+                if (uptime.TotalSeconds < 2.5)
                 {
-                    reason = $"游戏刚启动，等待引擎稳定 (约 {(int)Math.Ceiling(2.0 - uptime.TotalSeconds)} 秒)...";
+                    reason = $"游戏刚启动，等待基础初始化 (约 {(int)Math.Ceiling(2.5 - uptime.TotalSeconds)} 秒)...";
                     return false;
                 }
 
@@ -162,6 +162,13 @@ namespace AICTrainer.Services
                 if (!hasMono)
                 {
                     reason = "等待 Mono 运行时引擎加载...";
+                    return false;
+                }
+
+                // 深度检测：探测 Mono 根域 (Root Domain) 是否真实分配就绪
+                if (!AICTrainer.Injector.MonoInjector.IsMonoDomainReady(proc.Id))
+                {
+                    reason = "游戏引擎启动中，等待 Mono 根域 (Root Domain) 部署就绪...";
                     return false;
                 }
 

@@ -42,7 +42,105 @@ namespace AICMod.Patches
             }
         }
 
-        // 1b. 伤害倍率修改：挂钩 NelEnemy.applyHpDamage
+        [ThreadStatic]
+        private static bool _insideApplyDamage;
+
+        public struct AttackDamageBackup
+        {
+            public bool Active;
+            public int hpdmg0;
+            public int hpdmg_current;
+            public int mpdmg0;
+            public int mpdmg_current;
+        }
+
+        // 1b. 伤害倍率修改与一击秒杀：挂钩 NelEnemy.applyDamage 确保伤害结算与飘字（DamageCounter）完全同步
+        [HarmonyPatch]
+        public static class Patch_NelEnemy_applyDamage
+        {
+            public static MethodBase? TargetMethod()
+            {
+                return AccessTools.Method(typeof(NelEnemy), "applyDamage", new[] {
+                    typeof(NelAttackInfo),
+                    typeof(HITTYPE).MakeByRefType(),
+                    typeof(bool)
+                });
+            }
+
+            [HarmonyPrefix]
+            public static void Prefix(NelEnemy __instance, NelAttackInfo Atk, out AttackDamageBackup __state)
+            {
+                __state = default;
+                if (Atk == null || __instance == null) return;
+
+                var cfg = AICModConfig.Current;
+                bool isPlayer = Atk.Caster is M2AttackableP || Atk.Caster is PR || (Atk.Caster is MagicItem mg && mg.Caster is PR);
+                if (!isPlayer) return;
+
+                _insideApplyDamage = true;
+
+                if (cfg.OneHitKill)
+                {
+                    __state = new AttackDamageBackup
+                    {
+                        Active = true,
+                        hpdmg0 = Atk.hpdmg0,
+                        hpdmg_current = Atk.hpdmg_current,
+                        mpdmg0 = Atk.mpdmg0,
+                        mpdmg_current = Atk.mpdmg_current
+                    };
+                    int maxHp = (int)__instance.get_maxhp();
+                    int killVal = Math.Max(9999999, maxHp * 64);
+                    Atk.hpdmg0 = killVal;
+                    if (Atk.hpdmg_current != -1000)
+                    {
+                        Atk.hpdmg_current = killVal;
+                    }
+                    return;
+                }
+
+                if (cfg.EnableDamageMultiplier && cfg.DamageMultiplier > 0f && Math.Abs(cfg.DamageMultiplier - 1.0f) > 0.001f)
+                {
+                    __state = new AttackDamageBackup
+                    {
+                        Active = true,
+                        hpdmg0 = Atk.hpdmg0,
+                        hpdmg_current = Atk.hpdmg_current,
+                        mpdmg0 = Atk.mpdmg0,
+                        mpdmg_current = Atk.mpdmg_current
+                    };
+
+                    Atk.hpdmg0 = (int)Math.Max(1, Math.Round(Atk.hpdmg0 * cfg.DamageMultiplier));
+                    if (Atk.hpdmg_current != -1000)
+                    {
+                        Atk.hpdmg_current = (int)Math.Max(1, Math.Round(Atk.hpdmg_current * cfg.DamageMultiplier));
+                    }
+                    if (Atk.mpdmg0 > 0)
+                    {
+                        Atk.mpdmg0 = (int)Math.Max(1, Math.Round(Atk.mpdmg0 * cfg.DamageMultiplier));
+                    }
+                    if (Atk.mpdmg_current != -1000 && Atk.mpdmg_current > 0)
+                    {
+                        Atk.mpdmg_current = (int)Math.Max(1, Math.Round(Atk.mpdmg_current * cfg.DamageMultiplier));
+                    }
+                }
+            }
+
+            [HarmonyPostfix]
+            public static void Postfix(NelAttackInfo Atk, AttackDamageBackup __state)
+            {
+                _insideApplyDamage = false;
+
+                if (!__state.Active || Atk == null) return;
+
+                Atk.hpdmg0 = __state.hpdmg0;
+                Atk.hpdmg_current = __state.hpdmg_current;
+                Atk.mpdmg0 = __state.mpdmg0;
+                Atk.mpdmg_current = __state.mpdmg_current;
+            }
+        }
+
+        // 1c. 兜底挂钩 NelEnemy.applyHpDamage（针对未走 applyDamage 的底层直接扣血，避免二次放大）
         [HarmonyPatch]
         public static class Patch_NelEnemy_applyHpDamage
         {
@@ -59,6 +157,7 @@ namespace AICMod.Patches
             [HarmonyPrefix]
             public static void Prefix(NelEnemy __instance, ref int val, ref int mpdmg, NelAttackInfo Atk)
             {
+                if (_insideApplyDamage) return; // applyDamage 已统一放大处理，避免二次复合乘算
                 if (Atk == null || __instance == null) return;
 
                 var cfg = AICModConfig.Current;

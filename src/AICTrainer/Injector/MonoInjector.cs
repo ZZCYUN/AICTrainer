@@ -695,5 +695,106 @@ namespace AICTrainer.Injector
                 }
             }
         }
+
+        /// <summary>
+        /// 远程轻量探测目标进程中 Mono 根域 (Root Domain) 是否已真实分配并就绪
+        /// </summary>
+        public static bool IsMonoDomainReady(int processId)
+        {
+            IntPtr hProcess = IntPtr.Zero;
+            IntPtr remoteAlloc = IntPtr.Zero;
+            try
+            {
+                var proc = Process.GetProcessById(processId);
+                IntPtr remoteMonoBase = IntPtr.Zero;
+                string? monoDllPath = null;
+
+                foreach (ProcessModule mod in proc.Modules)
+                {
+                    if (mod.ModuleName.Equals("mono-2.0-bdwgc.dll", StringComparison.OrdinalIgnoreCase))
+                    {
+                        remoteMonoBase = mod.BaseAddress;
+                        monoDllPath = mod.FileName;
+                        break;
+                    }
+                }
+
+                if (remoteMonoBase == IntPtr.Zero || string.IsNullOrEmpty(monoDllPath))
+                {
+                    return false;
+                }
+
+                IntPtr localMono = LoadLibraryExA(monoDllPath, IntPtr.Zero, DONT_RESOLVE_DLL_REFERENCES);
+                if (localMono == IntPtr.Zero) return false;
+
+                IntPtr localAddr = GetProcAddress(localMono, "mono_get_root_domain");
+                FreeLibrary(localMono);
+                if (localAddr == IntPtr.Zero) return false;
+
+                long rva = localAddr.ToInt64() - localMono.ToInt64();
+                IntPtr fn_mono_get_root_domain = new IntPtr(remoteMonoBase.ToInt64() + rva);
+
+                hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, processId);
+                if (hProcess == IntPtr.Zero) return false;
+
+                // 构造 30 字节极简探测 Shellcode:
+                // sub rsp, 28h
+                // mov rax, <fn_mono_get_root_domain>
+                // call rax
+                // add rsp, 28h
+                // test rax, rax
+                // setne al
+                // movzx eax, al
+                // ret
+                var sc = new List<byte>
+                {
+                    0x48, 0x83, 0xEC, 0x28,                         // sub rsp, 28h
+                    0x48, 0xB8                                      // mov rax, imm64
+                };
+                sc.AddRange(BitConverter.GetBytes(fn_mono_get_root_domain.ToInt64()));
+                sc.AddRange(new byte[]
+                {
+                    0xFF, 0xD0,                                     // call rax
+                    0x48, 0x83, 0xC4, 0x28,                         // add rsp, 28h
+                    0x48, 0x85, 0xC0,                               // test rax, rax
+                    0x0F, 0x95, 0xC0,                               // setne al
+                    0x0F, 0xB6, 0xC0,                               // movzx eax, al
+                    0xC3                                            // ret
+                });
+
+                byte[] codeBytes = sc.ToArray();
+                remoteAlloc = VirtualAllocEx(hProcess, IntPtr.Zero, (uint)codeBytes.Length, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+                if (remoteAlloc == IntPtr.Zero) return false;
+
+                if (!WriteProcessMemory(hProcess, remoteAlloc, codeBytes, (uint)codeBytes.Length, out _))
+                {
+                    return false;
+                }
+
+                IntPtr hThread = CreateRemoteThread(hProcess, IntPtr.Zero, 0, remoteAlloc, IntPtr.Zero, 0, out _);
+                if (hThread == IntPtr.Zero) return false;
+
+                WaitForSingleObject(hThread, 1500);
+                GetExitCodeThread(hThread, out uint exitCode);
+                CloseHandle(hThread);
+
+                return exitCode == 1;
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                if (remoteAlloc != IntPtr.Zero && hProcess != IntPtr.Zero)
+                {
+                    VirtualFreeEx(hProcess, remoteAlloc, 0, MEM_RELEASE);
+                }
+                if (hProcess != IntPtr.Zero)
+                {
+                    CloseHandle(hProcess);
+                }
+            }
+        }
     }
 }
