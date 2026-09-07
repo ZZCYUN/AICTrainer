@@ -174,6 +174,18 @@ namespace AICShared
         public bool HitboxShowMp = true;   // 受击框显示MP (第3行)
         public bool HitboxShowAtkInfo = true; // 攻击框显示攻击信息
 
+        // 36. 诺艾尔攻击判定区倍率
+        public bool EnableNoelAttackScale;
+        public float NoelAttackScale = 2.0f;
+        public bool NoelAttackOnlyMelee = true; // 默认仅限近战攻击
+
+        // 37. 伤害倍率修改
+        public bool EnableDamageMultiplier;
+        public float DamageMultiplier = 2.0f;
+
+        // 38. 宝箱轮盘必定最佳
+        public bool EnableBestReelReward;
+
         public ModConfigDto Clone()
         {
             var copy = new ModConfigDto();
@@ -251,6 +263,12 @@ namespace AICShared
             HitboxShowHp = other.HitboxShowHp;
             HitboxShowMp = other.HitboxShowMp;
             HitboxShowAtkInfo = other.HitboxShowAtkInfo;
+            EnableNoelAttackScale = other.EnableNoelAttackScale;
+            NoelAttackScale = other.NoelAttackScale;
+            NoelAttackOnlyMelee = other.NoelAttackOnlyMelee;
+            EnableDamageMultiplier = other.EnableDamageMultiplier;
+            DamageMultiplier = other.DamageMultiplier;
+            EnableBestReelReward = other.EnableBestReelReward;
         }
     }
 

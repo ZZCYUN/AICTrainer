@@ -146,6 +146,8 @@ namespace AICTrainer.ViewModels
             ApplyBarScoreCommand = new RelayCommand(() => { Client.SendAction("set_bar_score", TargetBarScore); if (IsSaveConfigEnabled) SaveConfigSettings(); });
             ApplyGuildPointsCommand = new RelayCommand(() => { Client.SendAction("set_guild_points", TargetGuildPoints); if (IsSaveConfigEnabled) SaveConfigSettings(); });
             ApplyLanthanumCommand = new RelayCommand(() => { Client.SendAction("set_lanthanum", TargetLanthanum); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyNoelAttackScaleCommand = new RelayCommand(() => { if (IsSaveConfigEnabled) SaveConfigSettings(); PushConfig(); });
+            ApplyDamageMultiplierCommand = new RelayCommand(() => { if (IsSaveConfigEnabled) SaveConfigSettings(); PushConfig(); });
 
             // 一键捷径命令
             QuickHealCommand = new RelayCommand(() => Client.SendAction("full_heal"));
@@ -403,7 +405,7 @@ namespace AICTrainer.ViewModels
                 switch (SelectedCategoryIndex)
                 {
                     case 0: // 全部
-                        total = 43;
+                        total = 45;
                         if (IsHpLocked) active++;
                         if (IsMpLocked) active++;
                         if (IsMpCrackLocked) active++;
@@ -426,6 +428,8 @@ namespace AICTrainer.ViewModels
                         if (IsExtendedJustGuard) active++;
                         if (IsDisableHitCheck) active++;
                         if (IsShowHitboxes) active++;
+                        if (IsNoelAttackScaleEnabled) active++;
+                        if (IsDamageMultiplierEnabled) active++;
                         if (IsNoWormTrap) active++;
                         if (IsNoSpikeDamage) active++;
                         if (IsNoThunderDamage) active++;
@@ -441,6 +445,7 @@ namespace AICTrainer.ViewModels
                         if (IsBreakFoodAttrLimit) active++;
                         if (IsMosaicDisabled) active++;
                         if (IsDojoAlwaysWin) active++;
+                        if (IsBestReelRewardEnabled) active++;
                         if (IsGoldLocked) active++;
                         if (IsCraftsLocked) active++;
                         if (IsJuiceLocked) active++;
@@ -471,7 +476,7 @@ namespace AICTrainer.ViewModels
                         if (IsInfiniteJump) active++;
                         return $"已激活 {active} / {total} 项";
                     case 4: // 战斗
-                        total = 8;
+                        total = 10;
                         if (IsOneHitKill) active++;
                         if (IsShieldNeverBreak) active++;
                         if (IsInstantMagicCharge) active++;
@@ -480,6 +485,8 @@ namespace AICTrainer.ViewModels
                         if (IsExtendedJustGuard) active++;
                         if (IsDisableHitCheck) active++;
                         if (IsShowHitboxes) active++;
+                        if (IsNoelAttackScaleEnabled) active++;
+                        if (IsDamageMultiplierEnabled) active++;
                         return $"已激活 {active} / {total} 项";
                     case 5: // 环境
                         total = 5;
@@ -497,13 +504,14 @@ namespace AICTrainer.ViewModels
                         if (IsAlwaysHungryBonus) active++;
                         return $"已激活 {active} / {total} 项";
                     case 7: // 辅助
-                        total = 6;
+                        total = 7;
                         if (IsSaveAnywhere) active++;
                         if (IsFreezeCountdown) active++;
                         if (IsSlotLocked) active++;
                         if (IsBreakFoodAttrLimit) active++;
                         if (IsMosaicDisabled) active++;
                         if (IsDojoAlwaysWin) active++;
+                        if (IsBestReelRewardEnabled) active++;
                         return $"已激活 {active} / {total} 项";
                     case 8: // 资产与货币
                         total = 6;
@@ -536,10 +544,10 @@ namespace AICTrainer.ViewModels
             {
                 "Survival" => new[] { "Hp", "Mp", "MpCrack", "Inventory", "MaxSatiety", "Satiety", "Ep", "ImmuneStatus" },
                 "Mobility" => new[] { "WalkSpeed", "RunSpeed", "Grip", "NoSlip", "Knockback", "InfiniteJump" },
-                "Combat" => new[] { "OneHitKill", "ShieldBreak", "InstantMagicCharge", "NoBurstTired", "JustGuardNoHit", "ExtendedJustGuard", "DisableHitCheck", "ShowHitboxes" },
+                "Combat" => new[] { "OneHitKill", "ShieldBreak", "InstantMagicCharge", "NoBurstTired", "JustGuardNoHit", "ExtendedJustGuard", "DisableHitCheck", "ShowHitboxes", "NoelAttackScale", "DamageMultiplier" },
                 "Hazards" => new[] { "Worm", "Spike", "Thunder", "Drown", "Acid" },
                 "World" => new[] { "FastTravelAnytime", "FastTravelAnywhere", "Danger", "HungryBonus" },
-                "Utility" => new[] { "SaveAnywhere", "Countdown", "Slot", "BreakFood", "Mosaic", "DojoAlwaysWin" },
+                "Utility" => new[] { "SaveAnywhere", "Countdown", "Slot", "BreakFood", "Mosaic", "DojoAlwaysWin", "BestReelReward" },
                 "Currencies" => new[] { "Gold", "Crafts", "Juice", "BarScore", "GuildPoints", "Lanthanum" },
                 _ => Array.Empty<string>()
             };
@@ -619,10 +627,10 @@ namespace AICTrainer.ViewModels
             {
                 "Vis_Hp", "Vis_Mp", "Vis_MpCrack", "Vis_Inventory", "Vis_MaxSatiety", "Vis_Satiety", "Vis_Ep", "Vis_ImmuneStatus",
                 "Vis_WalkSpeed", "Vis_RunSpeed", "Vis_Grip", "Vis_NoSlip", "Vis_Knockback", "Vis_InfiniteJump",
-                "Vis_OneHitKill", "Vis_ShieldBreak", "Vis_InstantMagicCharge", "Vis_NoBurstTired", "Vis_JustGuardNoHit", "Vis_ExtendedJustGuard", "Vis_DisableHitCheck", "Vis_ShowHitboxes",
+                "Vis_OneHitKill", "Vis_ShieldBreak", "Vis_InstantMagicCharge", "Vis_NoBurstTired", "Vis_JustGuardNoHit", "Vis_ExtendedJustGuard", "Vis_DisableHitCheck", "Vis_ShowHitboxes", "Vis_NoelAttackScale", "Vis_DamageMultiplier",
                 "Vis_Worm", "Vis_Spike", "Vis_Thunder", "Vis_Drown", "Vis_Acid",
                 "Vis_FastTravelAnytime", "Vis_FastTravelAnywhere", "Vis_Danger", "Vis_HungryBonus",
-                "Vis_SaveAnywhere", "Vis_Countdown", "Vis_Slot", "Vis_BreakFood", "Vis_Mosaic", "Vis_DojoAlwaysWin",
+                "Vis_SaveAnywhere", "Vis_Countdown", "Vis_Slot", "Vis_BreakFood", "Vis_Mosaic", "Vis_DojoAlwaysWin", "Vis_BestReelReward",
                 "Vis_Gold", "Vis_Crafts", "Vis_Juice", "Vis_BarScore", "Vis_GuildPoints", "Vis_Lanthanum"
             };
             foreach (var p in cardProps) OnPropertyChanged(p);
@@ -656,6 +664,8 @@ namespace AICTrainer.ViewModels
         public Visibility Vis_ExtendedJustGuard => CardVis("Combat", "ExtendedJustGuard");
         public Visibility Vis_DisableHitCheck => CardVis("Combat", "DisableHitCheck");
         public Visibility Vis_ShowHitboxes => CardVis("Combat", "ShowHitboxes");
+        public Visibility Vis_NoelAttackScale => CardVis("Combat", "NoelAttackScale");
+        public Visibility Vis_DamageMultiplier => CardVis("Combat", "DamageMultiplier");
 
         // 地形免疫类
         public Visibility Vis_Worm => CardVis("Hazards", "Worm");
@@ -677,6 +687,7 @@ namespace AICTrainer.ViewModels
         public Visibility Vis_BreakFood => CardVis("Utility", "BreakFood");
         public Visibility Vis_Mosaic => CardVis("Utility", "Mosaic");
         public Visibility Vis_DojoAlwaysWin => CardVis("Utility", "DojoAlwaysWin");
+        public Visibility Vis_BestReelReward => CardVis("Utility", "BestReelReward");
 
         // 资产与货币类
         public Visibility Vis_Gold => CardVis("Currencies", "Gold");
@@ -841,6 +852,20 @@ namespace AICTrainer.ViewModels
         public string StarTextColor_ShowHitboxes => StarTextColor("ShowHitboxes");
         public string StarBg_ShowHitboxes => StarBg("ShowHitboxes");
         public string StarBorder_ShowHitboxes => StarBorder("ShowHitboxes");
+        public bool IsFav_NoelAttackScale => IsFav("NoelAttackScale");
+        public string StarChar_NoelAttackScale => StarChar("NoelAttackScale");
+        public string StarText_NoelAttackScale => StarText("NoelAttackScale");
+        public string StarColor_NoelAttackScale => StarColor("NoelAttackScale");
+        public string StarTextColor_NoelAttackScale => StarTextColor("NoelAttackScale");
+        public string StarBg_NoelAttackScale => StarBg("NoelAttackScale");
+        public string StarBorder_NoelAttackScale => StarBorder("NoelAttackScale");
+        public bool IsFav_DamageMultiplier => IsFav("DamageMultiplier");
+        public string StarChar_DamageMultiplier => StarChar("DamageMultiplier");
+        public string StarText_DamageMultiplier => StarText("DamageMultiplier");
+        public string StarColor_DamageMultiplier => StarColor("DamageMultiplier");
+        public string StarTextColor_DamageMultiplier => StarTextColor("DamageMultiplier");
+        public string StarBg_DamageMultiplier => StarBg("DamageMultiplier");
+        public string StarBorder_DamageMultiplier => StarBorder("DamageMultiplier");
         public bool IsFav_Worm => IsFav("Worm");
         public string StarChar_Worm => StarChar("Worm");
         public string StarText_Worm => StarText("Worm");
@@ -947,6 +972,14 @@ namespace AICTrainer.ViewModels
         public string StarTextColor_DojoAlwaysWin => StarTextColor("DojoAlwaysWin");
         public string StarBg_DojoAlwaysWin => StarBg("DojoAlwaysWin");
         public string StarBorder_DojoAlwaysWin => StarBorder("DojoAlwaysWin");
+
+        public bool IsFav_BestReelReward => IsFav("BestReelReward");
+        public string StarChar_BestReelReward => StarChar("BestReelReward");
+        public string StarText_BestReelReward => StarText("BestReelReward");
+        public string StarColor_BestReelReward => StarColor("BestReelReward");
+        public string StarTextColor_BestReelReward => StarTextColor("BestReelReward");
+        public string StarBg_BestReelReward => StarBg("BestReelReward");
+        public string StarBorder_BestReelReward => StarBorder("BestReelReward");
 
         public bool IsFav_Gold => IsFav("Gold");
         public string StarChar_Gold => StarChar("Gold");
@@ -1155,6 +1188,102 @@ namespace AICTrainer.ViewModels
                 return $"受击:[{hurtStr}] 攻击:[{atkStr}]";
             }
         }
+
+        // 诺艾尔攻击判定区倍率
+        public bool IsNoelAttackScaleEnabled
+        {
+            get => Config.EnableNoelAttackScale;
+            set
+            {
+                if (Config.EnableNoelAttackScale != value)
+                {
+                    Config.EnableNoelAttackScale = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CategoryActiveStatsText));
+                    PushConfig();
+                }
+            }
+        }
+
+        public float NoelAttackScaleMultiplier
+        {
+            get => Config.NoelAttackScale;
+            set
+            {
+                float val = (float)Math.Round(Math.Clamp(value, 1.0f, 10.0f), 1);
+                if (Math.Abs(Config.NoelAttackScale - val) > 0.001f)
+                {
+                    Config.NoelAttackScale = val;
+                    OnPropertyChanged();
+                    if (IsSaveConfigEnabled) SaveConfigSettings();
+                    PushConfig();
+                }
+            }
+        }
+
+        public bool IsNoelAttackOnlyMelee
+        {
+            get => Config.NoelAttackOnlyMelee;
+            set
+            {
+                if (Config.NoelAttackOnlyMelee != value)
+                {
+                    Config.NoelAttackOnlyMelee = value;
+                    OnPropertyChanged();
+                    if (IsSaveConfigEnabled) SaveConfigSettings();
+                    PushConfig();
+                }
+            }
+        }
+
+        // 伤害倍率
+        public bool IsDamageMultiplierEnabled
+        {
+            get => Config.EnableDamageMultiplier;
+            set
+            {
+                if (Config.EnableDamageMultiplier != value)
+                {
+                    Config.EnableDamageMultiplier = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CategoryActiveStatsText));
+                    PushConfig();
+                }
+            }
+        }
+
+        public float DamageMultiplier
+        {
+            get => Config.DamageMultiplier;
+            set
+            {
+                float val = Math.Clamp(value, 0.1f, 100.0f);
+                if (Math.Abs(Config.DamageMultiplier - val) > 0.001f)
+                {
+                    Config.DamageMultiplier = val;
+                    OnPropertyChanged();
+                    if (IsSaveConfigEnabled) SaveConfigSettings();
+                    PushConfig();
+                }
+            }
+        }
+
+        // 宝箱轮盘必定最佳
+        public bool IsBestReelRewardEnabled
+        {
+            get => Config.EnableBestReelReward;
+            set
+            {
+                if (Config.EnableBestReelReward != value)
+                {
+                    Config.EnableBestReelReward = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CategoryActiveStatsText));
+                    PushConfig();
+                }
+            }
+        }
+
         public bool IsFastTravelAnytime { get => Config.FastTravelAnytime; set { Config.FastTravelAnytime = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsFastTravelAnywhere { get => Config.FastTravelAnywhere; set { Config.FastTravelAnywhere = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsAlwaysHungryBonus { get => Config.AlwaysHungryBonus; set { Config.AlwaysHungryBonus = value; OnPropertyChanged(); PushConfig(); } }
@@ -1194,6 +1323,8 @@ namespace AICTrainer.ViewModels
         public ICommand ApplyBarScoreCommand { get; }
         public ICommand ApplyGuildPointsCommand { get; }
         public ICommand ApplyLanthanumCommand { get; }
+        public ICommand ApplyNoelAttackScaleCommand { get; }
+        public ICommand ApplyDamageMultiplierCommand { get; }
 
         public ICommand QuickHealCommand { get; }
         public ICommand QuickCureCracksCommand { get; }
@@ -1205,7 +1336,7 @@ namespace AICTrainer.ViewModels
         {
             if (ProcessMonitor.LaunchGame(out string err))
             {
-                StatusText = "游戏进程已拉起，等待游戏主窗口弹出...";
+                StatusText = "游戏进程已拉起，等待引擎与主窗口就绪...";
                 StatusColor = "#FFAA00";
 
                 var proc = await ProcessMonitor.WaitForGameWindowAsync(timeoutSeconds: 60);
@@ -1218,8 +1349,9 @@ namespace AICTrainer.ViewModels
                     return;
                 }
 
-                // 游戏窗口已真实弹出，等待完全加载至标题画面并额外延迟10秒后才进行注入 (共20秒安全缓冲)
-                for (int i = 20; i > 0; i--)
+                // 智能就绪探测：高频轮询检查窗口、Mono 运行时及响应，就绪后微缓冲 0.8 秒即注入
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                while (sw.Elapsed.TotalSeconds < 30)
                 {
                     if (proc.HasExited)
                     {
@@ -1227,21 +1359,30 @@ namespace AICTrainer.ViewModels
                         StatusColor = "#FF5555";
                         return;
                     }
-                    if (i > 10)
+
+                    if (ProcessMonitor.IsGameReadyForInjection(proc, out string reason))
                     {
-                        StatusText = $"检测到游戏窗口，等待加载至标题画面 (约 {i - 10} 秒)...";
+                        StatusText = "游戏引擎与主窗口已就绪，正在自动注入并建立连接...";
+                        StatusColor = "#00FFCC";
+                        await Task.Delay(800);
+                        if (!proc.HasExited && !IsInjected)
+                        {
+                            await InjectAndConnectAsync();
+                        }
+                        return;
                     }
                     else
                     {
-                        StatusText = $"已到达标题画面，安全缓冲延迟 {i} 秒后自动注入...";
+                        StatusText = reason;
+                        StatusColor = "#FFAA00";
                     }
-                    StatusColor = "#FFAA00";
-                    await Task.Delay(1000);
+
+                    await Task.Delay(300);
                 }
 
                 if (!proc.HasExited && !IsInjected)
                 {
-                    StatusText = "游戏主窗口与引擎已就绪，正在自动注入并建立连接...";
+                    StatusText = "等待就绪超时，正在尝试直接注入...";
                     await InjectAndConnectAsync();
                 }
             }
@@ -1285,31 +1426,22 @@ namespace AICTrainer.ViewModels
                 return false;
             }
 
-            // 检查游戏进程运行时长：若启动未满 20 秒，缓冲等待直到达到 20 秒，确保已进标题画面并稳定
+            // 检查游戏进程运行时长：若启动极短（< 2秒），微缓冲至 2 秒确保底层初始化完成；否则立即可注入
             try
             {
-                var uptime = DateTime.Now - Monitor.TargetProcess.StartTime;
-                if (uptime.TotalSeconds < 20)
+                var proc = Monitor.TargetProcess;
+                if (proc != null && !proc.HasExited)
                 {
-                    int remain = (int)Math.Ceiling(20 - uptime.TotalSeconds);
-                    for (int i = remain; i > 0; i--)
+                    var uptime = DateTime.Now - proc.StartTime;
+                    if (uptime.TotalSeconds < 2.0)
                     {
-                        if (Monitor.TargetProcess == null || Monitor.TargetProcess.HasExited)
+                        int remainMs = (int)Math.Ceiling((2.0 - uptime.TotalSeconds) * 1000);
+                        if (remainMs > 0)
                         {
-                            StatusText = "游戏已退出，注入已取消";
-                            StatusColor = "#FF5555";
-                            return false;
+                            StatusText = "游戏刚拉起，安全微缓冲中...";
+                            StatusColor = "#FFAA00";
+                            await Task.Delay(remainMs);
                         }
-                        if (i > 10)
-                        {
-                            StatusText = $"游戏刚启动，等待其加载至标题画面 (约 {i - 10} 秒)...";
-                        }
-                        else
-                        {
-                            StatusText = $"已到达标题画面，安全缓冲延迟 {i} 秒后注入...";
-                        }
-                        StatusColor = "#FFAA00";
-                        await Task.Delay(1000);
                     }
                 }
             }

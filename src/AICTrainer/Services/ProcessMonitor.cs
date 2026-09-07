@@ -115,6 +115,66 @@ namespace AICTrainer.Services
             return null;
         }
 
+        public static bool IsGameReadyForInjection(Process? proc, out string reason)
+        {
+            reason = string.Empty;
+            if (proc == null || proc.HasExited)
+            {
+                reason = "游戏进程未运行";
+                return false;
+            }
+
+            try
+            {
+                proc.Refresh();
+                IntPtr hWnd = proc.MainWindowHandle;
+                if (hWnd == IntPtr.Zero || !IsWindowVisible(hWnd))
+                {
+                    reason = "等待游戏主窗口弹出与渲染...";
+                    return false;
+                }
+
+                if (!proc.Responding)
+                {
+                    reason = "等待游戏主窗口响应...";
+                    return false;
+                }
+
+                // 检查进程启动时长，保障底层至少有 2 秒的基础初始化时间
+                var uptime = DateTime.Now - proc.StartTime;
+                if (uptime.TotalSeconds < 2.0)
+                {
+                    reason = $"游戏刚启动，等待引擎稳定 (约 {(int)Math.Ceiling(2.0 - uptime.TotalSeconds)} 秒)...";
+                    return false;
+                }
+
+                // 检查 Mono 运行时模块加载状态
+                bool hasMono = false;
+                foreach (ProcessModule mod in proc.Modules)
+                {
+                    if (mod.ModuleName.Equals("mono-2.0-bdwgc.dll", StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasMono = true;
+                        break;
+                    }
+                }
+
+                if (!hasMono)
+                {
+                    reason = "等待 Mono 运行时引擎加载...";
+                    return false;
+                }
+
+                reason = "游戏引擎与主窗口已就绪";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                reason = ex.Message;
+                return false;
+            }
+        }
+
         public static bool LaunchGame(out string err)
         {
             err = string.Empty;

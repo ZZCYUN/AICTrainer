@@ -3,6 +3,7 @@ using System.Reflection;
 using HarmonyLib;
 using m2d;
 using nel;
+using UnityEngine;
 using XX;
 
 namespace AICMod.Patches
@@ -37,6 +38,47 @@ namespace AICMod.Patches
                 if (caster is M2AttackableP || caster is PR || (caster is MagicItem mg && mg.Caster is PR))
                 {
                     __result = Math.Max(__result, 100f);
+                }
+            }
+        }
+
+        // 1b. 伤害倍率修改：挂钩 NelEnemy.applyHpDamage
+        [HarmonyPatch]
+        public static class Patch_NelEnemy_applyHpDamage
+        {
+            public static MethodBase? TargetMethod()
+            {
+                return AccessTools.Method(typeof(NelEnemy), "applyHpDamage", new[] {
+                    typeof(int),
+                    typeof(int).MakeByRefType(),
+                    typeof(bool),
+                    typeof(NelAttackInfo)
+                });
+            }
+
+            [HarmonyPrefix]
+            public static void Prefix(NelEnemy __instance, ref int val, ref int mpdmg, NelAttackInfo Atk)
+            {
+                if (Atk == null || __instance == null) return;
+
+                var cfg = AICModConfig.Current;
+                bool isPlayer = Atk.Caster is M2AttackableP || Atk.Caster is PR || (Atk.Caster is MagicItem mg && mg.Caster is PR);
+                if (!isPlayer) return;
+
+                if (cfg.OneHitKill)
+                {
+                    int maxHp = (int)__instance.get_maxhp();
+                    val = Math.Max(9999999, maxHp * 64);
+                    return;
+                }
+
+                if (cfg.EnableDamageMultiplier && cfg.DamageMultiplier > 0f && Math.Abs(cfg.DamageMultiplier - 1.0f) > 0.001f)
+                {
+                    val = (int)Math.Max(1, Math.Round(val * cfg.DamageMultiplier));
+                    if (mpdmg > 0)
+                    {
+                        mpdmg = (int)Math.Max(1, Math.Round(mpdmg * cfg.DamageMultiplier));
+                    }
                 }
             }
         }
@@ -319,6 +361,127 @@ namespace AICMod.Patches
                     return false;
                 }
                 return true;
+            }
+        }
+
+        // 12. 诺艾尔攻击判定区增大倍率 (攻击范围倍率)
+        public struct RayBackupState
+        {
+            public bool Active;
+            public float Radius;
+            public float Len;
+            public float LenMp;
+            public int AttackMax;
+        }
+
+        [HarmonyPatch]
+        public static class Patch_M2Ray_Cast
+        {
+            public static MethodBase? TargetMethod()
+            {
+                return AccessTools.Method(typeof(M2Ray), "Cast", new[] {
+                    typeof(bool),
+                    typeof(RaycastHit2D[]),
+                    typeof(bool)
+                });
+            }
+
+            public static bool IsNoelAttack(M2Ray ray, out MGKIND kind)
+            {
+                kind = MGKIND.NONE;
+                if (ray == null) return false;
+
+                bool isPr = ray.Caster is PR || (ray.Caster is M2Mover mv && mv is PR);
+                var nelAtk = ray.Atk as NelAttackInfo;
+                if (!isPr && nelAtk != null)
+                {
+                    isPr = nelAtk.Caster is PR || (nelAtk.Caster is M2Mover mv2 && mv2 is PR) || (nelAtk.Caster is MagicItem mgc && mgc.Caster is PR);
+                }
+
+                if (isPr)
+                {
+                    var mg = nelAtk?.PublishMagic;
+                    if (mg != null)
+                    {
+                        kind = mg.kind;
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            public static bool IsMeleeKind(MGKIND kind)
+            {
+                return kind == MGKIND.PR_PUNCH ||
+                       kind == MGKIND.PR_SHOTGUN ||
+                       kind == MGKIND.PR_SLIDING ||
+                       kind == MGKIND.PR_WHEEL ||
+                       kind == MGKIND.PR_COMET ||
+                       kind == MGKIND.PR_SHIELD_BUSH ||
+                       kind == MGKIND.PR_SHIELD_LARIAT ||
+                       kind == MGKIND.PR_DASHPUNCH ||
+                       kind == MGKIND.PR_EVADECOUNTER ||
+                       kind == MGKIND.PR_SMASH ||
+                       kind == MGKIND.PR_BURST ||
+                       kind == MGKIND.PR_SHINEBOOSTER ||
+                       kind == MGKIND.PR_EVADE_JUMP ||
+                       kind == MGKIND.NONE;
+            }
+
+            [HarmonyPrefix]
+            public static void Prefix(M2Ray __instance, out RayBackupState __state)
+            {
+                __state = default;
+                if (__instance == null) return;
+
+                var cfg = AICModConfig.Current;
+                if (!cfg.EnableNoelAttackScale) return;
+
+                float scale = cfg.NoelAttackScale;
+                if (scale <= 1.0f) return;
+
+                if (!IsNoelAttack(__instance, out var kind)) return;
+                if (cfg.NoelAttackOnlyMelee && !IsMeleeKind(kind)) return;
+
+                __state = new RayBackupState
+                {
+                    Active = true,
+                    Radius = __instance.radius,
+                    Len = __instance.len,
+                    LenMp = __instance.lenmp,
+                    AttackMax = (__instance.Atk as NelAttackInfo)?.attack_max0 ?? 0
+                };
+
+                __instance.radius *= scale;
+                if (__instance.len > 0f)
+                {
+                    __instance.len *= scale;
+                    __instance.lenmp *= scale;
+                }
+
+                if (__instance.Atk is NelAttackInfo nelAtk)
+                {
+                    if (nelAtk.attack_max0 > 0 && nelAtk.attack_max0 < 16)
+                    {
+                        nelAtk.attack_max0 = 16;
+                        nelAtk.resetAttackCount();
+                    }
+                }
+            }
+
+            [HarmonyPostfix]
+            public static void Postfix(M2Ray __instance, RayBackupState __state)
+            {
+                if (!__state.Active || __instance == null) return;
+
+                __instance.radius = __state.Radius;
+                __instance.len = __state.Len;
+                __instance.lenmp = __state.LenMp;
+                if (__instance.Atk is NelAttackInfo nelAtk && __state.AttackMax > 0)
+                {
+                    nelAtk.attack_max0 = __state.AttackMax;
+                    nelAtk.resetAttackCount();
+                }
             }
         }
     }

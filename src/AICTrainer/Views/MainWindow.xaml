@@ -68,6 +68,56 @@
             </Setter>
         </Style>
 
+        <!-- 现代化滑动条 ModernSlider 样式 -->
+        <Style x:Key="ModernSlider" TargetType="Slider">
+            <Setter Property="Stylus.IsPressAndHoldEnabled" Value="false"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="IsMoveToPointEnabled" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid VerticalAlignment="Center">
+                            <Border Height="5" Background="#232336" CornerRadius="2.5" BorderBrush="#3D3D56" BorderThickness="1"/>
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static Slider.DecreaseLarge}" Opacity="0" Focusable="False"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static Slider.IncreaseLarge}" Opacity="0" Focusable="False"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Focusable="False">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse x:Name="thumbEllipse" Width="14" Height="14" Fill="#00F0FF" Stroke="#FFFFFF" StrokeThickness="1.5">
+                                                    <Ellipse.Effect>
+                                                        <DropShadowEffect Color="#00F0FF" BlurRadius="6" ShadowDepth="0" Opacity="0.6"/>
+                                                    </Ellipse.Effect>
+                                                </Ellipse>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="thumbEllipse" Property="Fill" Value="#66F5FF"/>
+                                                        <Setter TargetName="thumbEllipse" Property="Width" Value="16"/>
+                                                        <Setter TargetName="thumbEllipse" Property="Height" Value="16"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="thumbEllipse" Property="Fill" Value="#FFFFFF"/>
+                                                        <Setter TargetName="thumbEllipse" Property="Stroke" Value="#00F0FF"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- 扁平霓虹按钮样式 -->
         <Style x:Key="NeonButton" TargetType="Button">
             <Setter Property="Background" Value="#202032"/>
@@ -1684,6 +1734,114 @@
                             </Grid>
                         </Grid>
                     </Border>
+                    <!-- 诺艾尔攻击范围倍率 -->
+                    <Border Visibility="{Binding Vis_NoelAttackScale}" Style="{StaticResource FeatureCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- 左侧表情图标 -->
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" BorderBrush="#383852" BorderThickness="1" Background="#141420" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Border.Clip>
+                                    <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,40,40"/>
+                                </Border.Clip>
+                                <Image Source="{h:Sticker 0_5}" Stretch="UniformToFill"/>
+                            </Border>
+                            <!-- 右侧主体内容 -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="诺艾尔攻击范围倍率" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="13"/>
+                                        <Border Margin="8,0,0,0" Background="#1E293B" CornerRadius="6" Padding="6,1">
+                                            <TextBlock Text="近战/范围扩展" Foreground="#F59E0B" FontSize="11"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Style="{StaticResource StarButton}" Command="{Binding ToggleFavCommand}" CommandParameter="NoelAttackScale" Background="{Binding StarBg_NoelAttackScale}" BorderBrush="{Binding StarBorder_NoelAttackScale}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StarChar_NoelAttackScale}" Foreground="{Binding StarColor_NoelAttackScale}" FontSize="15" FontWeight="Bold" Margin="0,-2,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding StarText_NoelAttackScale}" Foreground="{Binding StarTextColor_NoelAttackScale}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,4,0,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <!-- 第1行：滑块与实时倍率数值 -->
+                                    <Grid Grid.Row="0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="倍率: " Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
+                                        <Slider Grid.Column="1" Minimum="1.0" Maximum="10.0" SmallChange="0.1" LargeChange="0.5" TickFrequency="0.1" IsSnapToTickEnabled="True" Value="{Binding NoelAttackScaleMultiplier, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernSlider}" VerticalAlignment="Center" Margin="6,0,8,0"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding NoelAttackScaleMultiplier, StringFormat='{}{0:F1}x'}" Foreground="{StaticResource AccentCyan}" FontWeight="Bold" FontSize="12" Width="38" TextAlignment="Right" VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <!-- 第2行：仅限近战筛选与开启总开关 -->
+                                    <Grid Grid.Row="1" Margin="0,4,0,0">
+                                        <CheckBox Content="仅限近战" IsChecked="{Binding IsNoelAttackOnlyMelee}" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Left" ToolTip="勾选后仅放大物理近战攻击判定；取消勾选将同时放大魔法攻击判定"/>
+                                        <CheckBox Style="{StaticResource ModernToggleSwitch}" Content="范围开启" IsChecked="{Binding IsNoelAttackScaleEnabled}" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <!-- 伤害倍率修改 -->
+                    <Border Visibility="{Binding Vis_DamageMultiplier}" Style="{StaticResource FeatureCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- 左侧表情图标 -->
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" BorderBrush="#383852" BorderThickness="1" Background="#141420" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Border.Clip>
+                                    <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,40,40"/>
+                                </Border.Clip>
+                                <Image Source="{h:Sticker 2_4}" Stretch="UniformToFill"/>
+                            </Border>
+                            <!-- 右侧主体内容 -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="伤害倍率修改" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="13"/>
+                                        <Border Margin="8,0,0,0" Background="#3B1E2B" CornerRadius="6" Padding="6,1">
+                                            <TextBlock Text="输出强化" Foreground="#F43F5E" FontSize="11"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Style="{StaticResource StarButton}" Command="{Binding ToggleFavCommand}" CommandParameter="DamageMultiplier" Background="{Binding StarBg_DamageMultiplier}" BorderBrush="{Binding StarBorder_DamageMultiplier}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StarChar_DamageMultiplier}" Foreground="{Binding StarColor_DamageMultiplier}" FontSize="15" FontWeight="Bold" Margin="0,-2,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding StarText_DamageMultiplier}" Foreground="{Binding StarTextColor_DamageMultiplier}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="倍率: " Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
+                                    <TextBox Grid.Column="1" Width="55" Text="{Binding DamageMultiplier, UpdateSourceTrigger=PropertyChanged, StringFormat='F1'}" Style="{StaticResource ModernTextBox}" Margin="4,0,8,0"/>
+                                    <Button Grid.Column="2" HorizontalAlignment="Left" Content="应用" Style="{StaticResource ActionButton}" Command="{Binding ApplyDamageMultiplierCommand}"/>
+                                    <CheckBox Grid.Column="3" Style="{StaticResource ModernToggleSwitch}" Content="倍率开启" IsChecked="{Binding IsDamageMultiplierEnabled}"/>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
                         </UniformGrid>
                     </StackPanel>
 
@@ -2388,6 +2546,51 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="猜拳对决中任意按键或节拍均直接判定为克制正解并造成伤害" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                     <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" Content="必胜开启" IsChecked="{Binding IsDojoAlwaysWin}"/>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <!-- 宝箱轮盘必定最佳 -->
+                    <Border Visibility="{Binding Vis_BestReelReward}" Style="{StaticResource FeatureCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- 左侧表情图标 -->
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" BorderBrush="#383852" BorderThickness="1" Background="#141420" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Border.Clip>
+                                    <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,40,40"/>
+                                </Border.Clip>
+                                <Image Source="{h:Sticker 0_7}" Stretch="UniformToFill"/>
+                            </Border>
+                            <!-- 右侧主体内容 -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="宝箱轮盘必定最佳" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="13"/>
+                                        <Border Margin="8,0,0,0" Background="#1E293B" CornerRadius="6" Padding="6,1">
+                                            <TextBlock Text="保底最优/4星品质" Foreground="#38BDF8" FontSize="11"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Style="{StaticResource StarButton}" Command="{Binding ToggleFavCommand}" CommandParameter="BestReelReward" Background="{Binding StarBg_BestReelReward}" BorderBrush="{Binding StarBorder_BestReelReward}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StarChar_BestReelReward}" Foreground="{Binding StarColor_BestReelReward}" FontSize="15" FontWeight="Bold" Margin="0,-2,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding StarText_BestReelReward}" Foreground="{Binding StarTextColor_BestReelReward}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="开宝箱轮盘抽奖必停在稀有度最高槽位，品质升为4星且数量与金币拉满" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" Content="最佳开启" IsChecked="{Binding IsBestReelRewardEnabled}"/>
                                 </Grid>
                             </Grid>
                         </Grid>

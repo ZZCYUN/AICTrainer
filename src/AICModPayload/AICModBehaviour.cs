@@ -939,14 +939,24 @@ namespace AICMod
                 if (mg == null || mg.killed || mg.closed) continue;
 
                 Rect guiRect;
+                bool isNoelAtk = mg.Caster is PR || (mg.Caster is M2Mover mvC && mvC is PR);
+                float atkScale = 1f;
+                if (isNoelAtk && cfg.EnableNoelAttackScale && cfg.NoelAttackScale > 1f)
+                {
+                    if (!cfg.NoelAttackOnlyMelee || Patches.CombatPatch.Patch_M2Ray_Cast.IsMeleeKind(mg.kind))
+                    {
+                        atkScale = cfg.NoelAttackScale;
+                    }
+                }
+
                 if (mg.Ray != null)
                 {
                     var ray = mg.Ray;
                     M2Ray.shape2Size(ray.shape, out float xl, out float yl, out _);
                     if (xl <= 0f) xl = 1f;
                     if (yl <= 0f) yl = 1f;
-                    float rx = ray.radius_map * xl;
-                    float ry = ray.radius_map * yl;
+                    float rx = ray.radius_map * xl * atkScale;
+                    float ry = ray.radius_map * yl * atkScale;
                     Vector2 mapPos = ray.getMapPos();
 
                     float minMapX, maxMapX, minMapY, maxMapY;
@@ -959,8 +969,8 @@ namespace AICMod
                     }
                     else
                     {
-                        float endX = mapPos.x + ray.difmapx;
-                        float endY = mapPos.y + ray.difmapy;
+                        float endX = mapPos.x + ray.difmapx * atkScale;
+                        float endY = mapPos.y + ray.difmapy * atkScale;
                         minMapX = Mathf.Min(mapPos.x, endX) - rx;
                         maxMapX = Mathf.Max(mapPos.x, endX) + rx;
                         minMapY = Mathf.Min(mapPos.y, endY) - ry;
@@ -975,7 +985,7 @@ namespace AICMod
                 {
                     float cx = mg.Cen.x;
                     float cy = mg.Cen.y;
-                    float r = (mg.sz > 0f) ? mg.sz : 0.6f;
+                    float r = ((mg.sz > 0f) ? mg.sz : 0.6f) * atkScale;
                     var p1 = MapToGuiPoint(nm2d, curMap, cam, cx - r, cy - r);
                     var p2 = MapToGuiPoint(nm2d, curMap, cam, cx + r, cy + r);
                     guiRect = RectFromPoints(p1, p2);
