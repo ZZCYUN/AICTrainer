@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using AICShared;
 using m2d;
 using nel;
@@ -30,6 +31,9 @@ namespace AICMod
         {
             try
             {
+                // 0. 确保判定框渲染器就绪
+                EnsureDrawer();
+
                 // 1. 在主线程中安全处理 IPC 远程指令
                 while (IncomingActions.TryDequeue(out var act))
                 {
@@ -756,6 +760,381 @@ namespace AICMod
                 UIStatus.Instance.draw_crack = true;
                 UIStatus.Instance.fineMpRatio(true, false);
             }
+        }
+
+        private static AICModHitboxDrawer? _drawer;
+
+        public static void EnsureDrawer()
+        {
+            if (_drawer == null)
+            {
+                try
+                {
+                    var go = new GameObject("AICMod_HitboxDrawer");
+                    UnityEngine.Object.DontDestroyOnLoad(go);
+                    _drawer = go.AddComponent<AICModHitboxDrawer>();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[AICMod] EnsureDrawer warning: " + ex.Message);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 判定框绘制组件：实时在屏幕上将受击框（蓝框）与攻击框（红框）绘制到对应单位与攻击上
+    /// 完全使用 Unity 原生 OnGUI 机制，零着色器/材质入侵，极致轻量与兼容
+    /// </summary>
+    public class AICModHitboxDrawer : MonoBehaviour
+    {
+        private static Texture2D? _whiteTex;
+        public static Texture2D WhiteTex
+        {
+            get
+            {
+                if (_whiteTex == null)
+                {
+                    _whiteTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                    _whiteTex.SetPixel(0, 0, Color.white);
+                    _whiteTex.Apply();
+                }
+                return _whiteTex;
+            }
+        }
+
+        private static GUIStyle? _labelStyle;
+        public static GUIStyle LabelStyle
+        {
+            get
+            {
+                if (_labelStyle == null)
+                {
+                    _labelStyle = new GUIStyle(GUI.skin.label)
+                    {
+                        fontSize = 11,
+                        fontStyle = FontStyle.Bold,
+                        alignment = TextAnchor.UpperLeft,
+                        wordWrap = false,
+                        normal = { textColor = Color.white }
+                    };
+                }
+                return _labelStyle;
+            }
+        }
+
+        private void OnGUI()
+        {
+            if (!AICModConfig.Current.ShowHitboxes) return;
+
+            var nm2d = M2DBase.Instance as NelM2DBase;
+            if (nm2d == null || nm2d.curMap == null) return;
+            var curMap = nm2d.curMap;
+
+            Camera? cam = null;
+            if (nm2d.Cam != null)
+            {
+                try { cam = nm2d.Cam.CamForMover; } catch { }
+                if (cam == null || !cam.enabled)
+                {
+                    try { cam = nm2d.Cam.get_FinalCamera(); } catch { }
+                }
+                if (cam == null || !cam.enabled)
+                {
+                    try { cam = nm2d.Cam.CamForEditor; } catch { }
+                }
+            }
+            if (cam == null) cam = Camera.main;
+            if (cam == null) return;
+
+            // 1. 绘制受击框（蓝框）：当前地图上所有存活的攻击目标单位（Noel、敌怪等）
+            DrawHurtboxes(nm2d, curMap, cam);
+
+            // 2. 绘制攻击判定框（红框）：当前活跃的全部攻击、魔法与投射物
+            DrawHitboxes(nm2d, curMap, cam);
+        }
+
+        private void DrawHurtboxes(NelM2DBase nm2d, Map2d curMap, Camera cam)
+        {
+            var movers = curMap.getVectorMover();
+            if (movers == null) return;
+
+            var cfg = AICModConfig.Current;
+
+            for (int i = 0; i < movers.Length; i++)
+            {
+                var mv = movers[i];
+                if (mv == null || mv.destructed) continue;
+                if (!(mv is M2Attackable atk) || !atk.is_alive) continue;
+
+                Rect guiRect;
+                var cc = mv.getColliderCreator();
+                Collider2D? cld = cc?.Cld ?? mv.GetComponent<Collider2D>();
+                if (cld != null && cld.enabled)
+                {
+                    var bounds = cld.bounds;
+                    var p1 = WorldToGuiPoint(nm2d, cam, new Vector3(bounds.min.x, bounds.max.y, bounds.min.z));
+                    var p2 = WorldToGuiPoint(nm2d, cam, new Vector3(bounds.max.x, bounds.min.y, bounds.min.z));
+                    guiRect = RectFromPoints(p1, p2);
+                }
+                else
+                {
+                    var p1 = MapToGuiPoint(nm2d, curMap, cam, mv.mleft, mv.mtop);
+                    var p2 = MapToGuiPoint(nm2d, curMap, cam, mv.mright, mv.mbottom);
+                    guiRect = RectFromPoints(p1, p2);
+                }
+
+                if (IsOffscreen(guiRect)) continue;
+
+                string unitName;
+                int curHp = (int)atk.get_hp();
+                int maxHp = (int)atk.get_maxhp();
+                int curMp = (int)atk.get_mp();
+                int maxMp = (int)atk.get_maxmp();
+                bool hasMp = maxMp > 0;
+
+                if (mv is PRNoel)
+                {
+                    unitName = "Noel";
+                    hasMp = true;
+                }
+                else if (mv is NelEnemy en)
+                {
+                    unitName = $"[EN] {en.name}";
+                }
+                else
+                {
+                    unitName = $"[Unit] {mv.name}";
+                }
+
+                var lines = new List<string>(3);
+                if (cfg.HitboxShowName) lines.Add(unitName);
+                if (cfg.HitboxShowHp) lines.Add($"HP: {curHp}/{maxHp}");
+                if (cfg.HitboxShowMp && hasMp) lines.Add($"MP: {curMp}/{maxMp}");
+
+                string? label = (lines.Count > 0) ? string.Join("\n", lines) : null;
+
+                DrawBox(
+                    guiRect,
+                    new Color(0.1f, 0.65f, 1.0f, 0.15f), // 蓝框半透明填充
+                    new Color(0.1f, 0.65f, 1.0f, 0.90f), // 蓝框边框
+                    2f,
+                    label,
+                    new Color(0.6f, 0.9f, 1.0f, 1.0f)
+                );
+            }
+        }
+
+        private void DrawHitboxes(NelM2DBase nm2d, Map2d curMap, Camera cam)
+        {
+            var mgc = nm2d.MGC;
+            if (mgc == null) return;
+
+            var cfg = AICModConfig.Current;
+
+            int count = mgc.Length;
+            for (int i = 0; i < count; i++)
+            {
+                var mg = mgc.getMg(i);
+                if (mg == null || mg.killed || mg.closed) continue;
+
+                Rect guiRect;
+                if (mg.Ray != null)
+                {
+                    var ray = mg.Ray;
+                    M2Ray.shape2Size(ray.shape, out float xl, out float yl, out _);
+                    if (xl <= 0f) xl = 1f;
+                    if (yl <= 0f) yl = 1f;
+                    float rx = ray.radius_map * xl;
+                    float ry = ray.radius_map * yl;
+                    Vector2 mapPos = ray.getMapPos();
+
+                    float minMapX, maxMapX, minMapY, maxMapY;
+                    if (ray.lenmp <= 0.001f)
+                    {
+                        minMapX = mapPos.x - rx;
+                        maxMapX = mapPos.x + rx;
+                        minMapY = mapPos.y - ry;
+                        maxMapY = mapPos.y + ry;
+                    }
+                    else
+                    {
+                        float endX = mapPos.x + ray.difmapx;
+                        float endY = mapPos.y + ray.difmapy;
+                        minMapX = Mathf.Min(mapPos.x, endX) - rx;
+                        maxMapX = Mathf.Max(mapPos.x, endX) + rx;
+                        minMapY = Mathf.Min(mapPos.y, endY) - ry;
+                        maxMapY = Mathf.Max(mapPos.y, endY) + ry;
+                    }
+
+                    var p1 = MapToGuiPoint(nm2d, curMap, cam, minMapX, minMapY);
+                    var p2 = MapToGuiPoint(nm2d, curMap, cam, maxMapX, maxMapY);
+                    guiRect = RectFromPoints(p1, p2);
+                }
+                else
+                {
+                    float cx = mg.Cen.x;
+                    float cy = mg.Cen.y;
+                    float r = (mg.sz > 0f) ? mg.sz : 0.6f;
+                    var p1 = MapToGuiPoint(nm2d, curMap, cam, cx - r, cy - r);
+                    var p2 = MapToGuiPoint(nm2d, curMap, cam, cx + r, cy + r);
+                    guiRect = RectFromPoints(p1, p2);
+                }
+
+                if (IsOffscreen(guiRect)) continue;
+
+                string? label = null;
+                if (cfg.HitboxShowAtkInfo)
+                {
+                    string casterName = (mg.Caster is M2Mover mvCaster) ? mvCaster.name : "Map";
+                    label = $"[ATK] {mg.kind} ({casterName})";
+                }
+
+                DrawBox(
+                    guiRect,
+                    new Color(1.0f, 0.25f, 0.25f, 0.20f), // 红框半透明填充
+                    new Color(1.0f, 0.25f, 0.25f, 0.90f), // 红框边框
+                    2f,
+                    label,
+                    new Color(1.0f, 0.75f, 0.75f, 1.0f)
+                );
+            }
+        }
+
+        private static float GetScreenScaleRatio()
+        {
+            try
+            {
+                if (IN.pixel_scale > 0.01f)
+                {
+                    return IN.pixel_scale;
+                }
+            }
+            catch { }
+
+            float sw = Screen.width;
+            float sh = Screen.height;
+            if (sh <= 0f) return 1f;
+
+            float aspect = sw / sh;
+            const float baseAspect = 1280f / 720f;
+
+            if (aspect >= baseAspect)
+            {
+                return sh / 720f;
+            }
+            else
+            {
+                return sw / 1280f;
+            }
+        }
+
+        private static Vector2 WorldToGuiPoint(NelM2DBase nm2d, Camera cam, Vector3 worldPos)
+        {
+            Vector3 sp = cam.WorldToScreenPoint(worldPos);
+            if (sp.z < 0f) return new Vector2(-10000f, -10000f);
+
+            float scaleRatio = GetScreenScaleRatio();
+            float gx, gy;
+
+            if (cam.targetTexture != null)
+            {
+                float pw = cam.pixelWidth > 0 ? cam.pixelWidth : 1280f;
+                float ph = cam.pixelHeight > 0 ? cam.pixelHeight : 720f;
+                gx = Screen.width * 0.5f + (sp.x - pw * 0.5f) * scaleRatio;
+                gy = Screen.height * 0.5f - (sp.y - ph * 0.5f) * scaleRatio;
+            }
+            else
+            {
+                float pw = cam.pixelWidth > 0 ? cam.pixelWidth : Screen.width;
+                float ph = cam.pixelHeight > 0 ? cam.pixelHeight : Screen.height;
+                gx = sp.x * ((float)Screen.width / pw);
+                gy = (ph - sp.y) * ((float)Screen.height / ph);
+            }
+
+            // 适配立绘展示 (ui_shift_x) 带来的全局画面水平偏移
+            if (nm2d != null && nm2d.ui_shift_x != 0f)
+            {
+                gx += nm2d.ui_shift_x * scaleRatio;
+            }
+
+            return new Vector2(gx, gy);
+        }
+
+        private static Vector2 MapToGuiPoint(NelM2DBase nm2d, Map2d curMap, Camera cam, float mapX, float mapY)
+        {
+            if (curMap.gameObject != null)
+            {
+                float lx = curMap.map2meshx(mapX) * (1f / 64f);
+                float ly = curMap.map2meshy(mapY) * (1f / 64f);
+                Vector3 worldPos = curMap.gameObject.transform.TransformPoint(lx, ly, 0f);
+                return WorldToGuiPoint(nm2d, cam, worldPos);
+            }
+            return Vector2.zero;
+        }
+
+        private static Rect RectFromPoints(Vector2 p1, Vector2 p2)
+        {
+            float left = Mathf.Min(p1.x, p2.x);
+            float top = Mathf.Min(p1.y, p2.y);
+            float width = Mathf.Max(1f, Mathf.Abs(p2.x - p1.x));
+            float height = Mathf.Max(1f, Mathf.Abs(p2.y - p1.y));
+            return new Rect(left, top, width, height);
+        }
+
+        private static bool IsOffscreen(Rect r)
+        {
+            return r.xMax < -50f || r.x > Screen.width + 50f || r.yMax < -50f || r.y > Screen.height + 50f;
+        }
+
+        private static void DrawBox(Rect rect, Color fillColor, Color borderColor, float borderWidth, string? label, Color labelColor)
+        {
+            // 填充背景
+            if (fillColor.a > 0f)
+            {
+                GUI.color = fillColor;
+                GUI.DrawTexture(rect, WhiteTex);
+            }
+
+            // 边框绘制
+            if (borderColor.a > 0f && borderWidth > 0f)
+            {
+                GUI.color = borderColor;
+                // 上
+                GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, borderWidth), WhiteTex);
+                // 下
+                GUI.DrawTexture(new Rect(rect.x, rect.yMax - borderWidth, rect.width, borderWidth), WhiteTex);
+                // 左
+                GUI.DrawTexture(new Rect(rect.x, rect.y + borderWidth, borderWidth, rect.height - borderWidth * 2f), WhiteTex);
+                // 右
+                GUI.DrawTexture(new Rect(rect.xMax - borderWidth, rect.y + borderWidth, borderWidth, rect.height - borderWidth * 2f), WhiteTex);
+            }
+
+            // 标签文字
+            if (!string.IsNullOrEmpty(label))
+            {
+                GUIContent content = new GUIContent(label);
+                Vector2 size = LabelStyle.CalcSize(content);
+                float labelW = size.x + 8f;
+                float labelH = size.y + 4f;
+                float labelY = rect.y - labelH - 1f;
+                if (labelY < 2f) labelY = rect.y + 2f;
+                Rect labelRect = new Rect(rect.x, labelY, labelW, labelH);
+
+                // 标签背景
+                GUI.color = new Color(0f, 0f, 0f, 0.80f);
+                GUI.DrawTexture(labelRect, WhiteTex);
+
+                // 标签细框
+                GUI.color = borderColor;
+                GUI.DrawTexture(new Rect(labelRect.x, labelRect.y, labelRect.width, 1f), WhiteTex);
+
+                // 标签文字
+                GUI.color = labelColor;
+                GUI.Label(new Rect(labelRect.x + 4f, labelY + 2f, size.x, size.y), content, LabelStyle);
+            }
+
+            GUI.color = Color.white;
         }
     }
 }

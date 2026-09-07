@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
+using AICShared;
+
 namespace AICTrainer.Services
 {
     public class TrainerSettings
     {
         public bool DoNotShowDisclaimer { get; set; } = false;
         public List<string> Favorites { get; set; } = new();
+        public bool RememberConfig { get; set; } = false;
+        public ModConfigDto? SavedConfig { get; set; }
 
         private static string SettingsPath
         {

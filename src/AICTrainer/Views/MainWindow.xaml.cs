@@ -78,6 +78,38 @@ namespace AICTrainer.Views
             MainCardsScrollViewer?.ScrollToTop();
         }
 
+        private void OnHitboxConfigClick(object sender, RoutedEventArgs e)
+        {
+            OpenHitboxConfigDialog();
+        }
+
+        private void OnHitboxCardClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is DependencyObject dep)
+            {
+                var parent = dep;
+                while (parent != null && parent != sender)
+                {
+                    if (parent is System.Windows.Controls.CheckBox || parent is System.Windows.Controls.Button)
+                    {
+                        return;
+                    }
+                    parent = System.Windows.Media.VisualTreeHelper.GetParent(parent);
+                }
+            }
+            OpenHitboxConfigDialog();
+        }
+
+        private void OpenHitboxConfigDialog()
+        {
+            var dlg = new HitboxConfigDialog
+            {
+                Owner = this,
+                DataContext = _vm
+            };
+            dlg.ShowDialog();
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);

@@ -53,6 +53,33 @@ namespace AICTrainer.ViewModels
         // 分类与收藏系统
         private int _selectedCategoryIndex = 0; // 0:全部, 1:收藏, 2:属性生存, 3:角色机动, 4:战斗增强, 5:地形免疫, 6:地图世界, 7:辅助便利, 8:资产货币
         private readonly HashSet<string> _favoriteKeys = new HashSet<string>();
+        private bool _isSaveConfigEnabled;
+
+        public bool IsSaveConfigEnabled
+        {
+            get => _isSaveConfigEnabled;
+            set
+            {
+                if (_isSaveConfigEnabled != value)
+                {
+                    _isSaveConfigEnabled = value;
+                    OnPropertyChanged();
+                    SaveConfigSettings();
+                }
+            }
+        }
+
+        private void SaveConfigSettings()
+        {
+            try
+            {
+                var settings = TrainerSettings.Load();
+                settings.RememberConfig = _isSaveConfigEnabled;
+                settings.SavedConfig = _isSaveConfigEnabled ? Config.Clone() : null;
+                settings.Save();
+            }
+            catch { }
+        }
 
         public MainViewModel()
         {
@@ -67,6 +94,12 @@ namespace AICTrainer.ViewModels
                 {
                     string[] defs = { "Hp", "Mp", "OneHitKill", "InfiniteJump", "ShieldBreak" };
                     foreach (var d in defs) _favoriteKeys.Add(d);
+                }
+
+                _isSaveConfigEnabled = settings.RememberConfig;
+                if (settings.RememberConfig && settings.SavedConfig != null)
+                {
+                    Config.CopyFrom(settings.SavedConfig);
                 }
             }
             catch
@@ -84,25 +117,25 @@ namespace AICTrainer.ViewModels
             ToggleFavCommand = new RelayCommand<string>(key => ToggleFavorite(key));
 
             // 单次更改数值动作命令
-            ApplyHpCommand = new RelayCommand(() => Client.SendAction("set_hp", TargetHp > 0 ? TargetHp : _rawMaxHp));
-            ApplyMpCommand = new RelayCommand(() => Client.SendAction("set_mp", TargetMp > 0 ? TargetMp : _rawMaxMp));
-            ApplyMpCrackCommand = new RelayCommand(() => Client.SendAction("set_mp_crack", TargetMpCrack));
-            ApplyInventoryCommand = new RelayCommand(() => Client.SendAction("set_inventory", TargetInventoryCapacity));
-            ApplyMaxSatietyCommand = new RelayCommand(() => Client.SendAction("set_max_satiety", TargetMaxSatiety));
-            ApplySatietyCommand = new RelayCommand(() => Client.SendAction("set_satiety", 0, TargetSatiety));
-            ApplyEpCommand = new RelayCommand(() => Client.SendAction("set_ep", TargetEp));
-            ApplyWalkSpeedCommand = new RelayCommand(() => Client.SendAction("set_walk_speed", 0, WalkSpeedMultiplier));
-            ApplyRunSpeedCommand = new RelayCommand(() => Client.SendAction("set_run_speed", 0, RunSpeedMultiplier));
-            ApplyGripCommand = new RelayCommand(() => Client.SendAction("set_grip", 0, TargetGrip));
-            ApplyKnockbackCommand = new RelayCommand(() => Client.SendAction("set_knockback", TargetKnockbackTime));
-            ApplySlotCommand = new RelayCommand(() => Client.SendAction("set_slot", TargetSlotCapacity));
-            ApplyDangerCommand = new RelayCommand(() => Client.SendAction("set_danger", TargetDangerLevel));
-            ApplyGoldCommand = new RelayCommand(() => Client.SendAction("set_gold", TargetGold));
-            ApplyCraftsCommand = new RelayCommand(() => Client.SendAction("set_crafts", TargetCrafts));
-            ApplyJuiceCommand = new RelayCommand(() => Client.SendAction("set_juice", TargetJuice));
-            ApplyBarScoreCommand = new RelayCommand(() => Client.SendAction("set_bar_score", TargetBarScore));
-            ApplyGuildPointsCommand = new RelayCommand(() => Client.SendAction("set_guild_points", TargetGuildPoints));
-            ApplyLanthanumCommand = new RelayCommand(() => Client.SendAction("set_lanthanum", TargetLanthanum));
+            ApplyHpCommand = new RelayCommand(() => { Client.SendAction("set_hp", TargetHp > 0 ? TargetHp : _rawMaxHp); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyMpCommand = new RelayCommand(() => { Client.SendAction("set_mp", TargetMp > 0 ? TargetMp : _rawMaxMp); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyMpCrackCommand = new RelayCommand(() => { Client.SendAction("set_mp_crack", TargetMpCrack); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyInventoryCommand = new RelayCommand(() => { Client.SendAction("set_inventory", TargetInventoryCapacity); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyMaxSatietyCommand = new RelayCommand(() => { Client.SendAction("set_max_satiety", TargetMaxSatiety); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplySatietyCommand = new RelayCommand(() => { Client.SendAction("set_satiety", 0, TargetSatiety); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyEpCommand = new RelayCommand(() => { Client.SendAction("set_ep", TargetEp); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyWalkSpeedCommand = new RelayCommand(() => { Client.SendAction("set_walk_speed", 0, WalkSpeedMultiplier); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyRunSpeedCommand = new RelayCommand(() => { Client.SendAction("set_run_speed", 0, RunSpeedMultiplier); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyGripCommand = new RelayCommand(() => { Client.SendAction("set_grip", 0, TargetGrip); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyKnockbackCommand = new RelayCommand(() => { Client.SendAction("set_knockback", TargetKnockbackTime); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplySlotCommand = new RelayCommand(() => { Client.SendAction("set_slot", TargetSlotCapacity); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyDangerCommand = new RelayCommand(() => { Client.SendAction("set_danger", TargetDangerLevel); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyGoldCommand = new RelayCommand(() => { Client.SendAction("set_gold", TargetGold); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyCraftsCommand = new RelayCommand(() => { Client.SendAction("set_crafts", TargetCrafts); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyJuiceCommand = new RelayCommand(() => { Client.SendAction("set_juice", TargetJuice); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyBarScoreCommand = new RelayCommand(() => { Client.SendAction("set_bar_score", TargetBarScore); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyGuildPointsCommand = new RelayCommand(() => { Client.SendAction("set_guild_points", TargetGuildPoints); if (IsSaveConfigEnabled) SaveConfigSettings(); });
+            ApplyLanthanumCommand = new RelayCommand(() => { Client.SendAction("set_lanthanum", TargetLanthanum); if (IsSaveConfigEnabled) SaveConfigSettings(); });
 
             // 一键捷径命令
             QuickHealCommand = new RelayCommand(() => Client.SendAction("full_heal"));
@@ -360,7 +393,7 @@ namespace AICTrainer.ViewModels
                 switch (SelectedCategoryIndex)
                 {
                     case 0: // 全部
-                        total = 42;
+                        total = 43;
                         if (IsHpLocked) active++;
                         if (IsMpLocked) active++;
                         if (IsMpCrackLocked) active++;
@@ -382,6 +415,7 @@ namespace AICTrainer.ViewModels
                         if (IsJustGuardNoHit) active++;
                         if (IsExtendedJustGuard) active++;
                         if (IsDisableHitCheck) active++;
+                        if (IsShowHitboxes) active++;
                         if (IsNoWormTrap) active++;
                         if (IsNoSpikeDamage) active++;
                         if (IsNoThunderDamage) active++;
@@ -427,7 +461,7 @@ namespace AICTrainer.ViewModels
                         if (IsInfiniteJump) active++;
                         return $"已激活 {active} / {total} 项";
                     case 4: // 战斗
-                        total = 7;
+                        total = 8;
                         if (IsOneHitKill) active++;
                         if (IsShieldNeverBreak) active++;
                         if (IsInstantMagicCharge) active++;
@@ -435,6 +469,7 @@ namespace AICTrainer.ViewModels
                         if (IsJustGuardNoHit) active++;
                         if (IsExtendedJustGuard) active++;
                         if (IsDisableHitCheck) active++;
+                        if (IsShowHitboxes) active++;
                         return $"已激活 {active} / {total} 项";
                     case 5: // 环境
                         total = 5;
@@ -491,7 +526,7 @@ namespace AICTrainer.ViewModels
             {
                 "Survival" => new[] { "Hp", "Mp", "MpCrack", "Inventory", "MaxSatiety", "Satiety", "Ep", "ImmuneStatus" },
                 "Mobility" => new[] { "WalkSpeed", "RunSpeed", "Grip", "NoSlip", "Knockback", "InfiniteJump" },
-                "Combat" => new[] { "OneHitKill", "ShieldBreak", "InstantMagicCharge", "NoBurstTired", "JustGuardNoHit", "ExtendedJustGuard", "DisableHitCheck" },
+                "Combat" => new[] { "OneHitKill", "ShieldBreak", "InstantMagicCharge", "NoBurstTired", "JustGuardNoHit", "ExtendedJustGuard", "DisableHitCheck", "ShowHitboxes" },
                 "Hazards" => new[] { "Worm", "Spike", "Thunder", "Drown", "Acid" },
                 "World" => new[] { "FastTravelAnytime", "FastTravelAnywhere", "Danger", "HungryBonus" },
                 "Utility" => new[] { "SaveAnywhere", "Countdown", "Slot", "BreakFood", "Mosaic", "DojoAlwaysWin" },
@@ -574,7 +609,7 @@ namespace AICTrainer.ViewModels
             {
                 "Vis_Hp", "Vis_Mp", "Vis_MpCrack", "Vis_Inventory", "Vis_MaxSatiety", "Vis_Satiety", "Vis_Ep", "Vis_ImmuneStatus",
                 "Vis_WalkSpeed", "Vis_RunSpeed", "Vis_Grip", "Vis_NoSlip", "Vis_Knockback", "Vis_InfiniteJump",
-                "Vis_OneHitKill", "Vis_ShieldBreak", "Vis_InstantMagicCharge", "Vis_NoBurstTired", "Vis_JustGuardNoHit", "Vis_ExtendedJustGuard", "Vis_DisableHitCheck",
+                "Vis_OneHitKill", "Vis_ShieldBreak", "Vis_InstantMagicCharge", "Vis_NoBurstTired", "Vis_JustGuardNoHit", "Vis_ExtendedJustGuard", "Vis_DisableHitCheck", "Vis_ShowHitboxes",
                 "Vis_Worm", "Vis_Spike", "Vis_Thunder", "Vis_Drown", "Vis_Acid",
                 "Vis_FastTravelAnytime", "Vis_FastTravelAnywhere", "Vis_Danger", "Vis_HungryBonus",
                 "Vis_SaveAnywhere", "Vis_Countdown", "Vis_Slot", "Vis_BreakFood", "Vis_Mosaic", "Vis_DojoAlwaysWin",
@@ -610,6 +645,7 @@ namespace AICTrainer.ViewModels
         public Visibility Vis_JustGuardNoHit => CardVis("Combat", "JustGuardNoHit");
         public Visibility Vis_ExtendedJustGuard => CardVis("Combat", "ExtendedJustGuard");
         public Visibility Vis_DisableHitCheck => CardVis("Combat", "DisableHitCheck");
+        public Visibility Vis_ShowHitboxes => CardVis("Combat", "ShowHitboxes");
 
         // 地形免疫类
         public Visibility Vis_Worm => CardVis("Hazards", "Worm");
@@ -788,6 +824,13 @@ namespace AICTrainer.ViewModels
         public string StarTextColor_DisableHitCheck => StarTextColor("DisableHitCheck");
         public string StarBg_DisableHitCheck => StarBg("DisableHitCheck");
         public string StarBorder_DisableHitCheck => StarBorder("DisableHitCheck");
+        public bool IsFav_ShowHitboxes => IsFav("ShowHitboxes");
+        public string StarChar_ShowHitboxes => StarChar("ShowHitboxes");
+        public string StarText_ShowHitboxes => StarText("ShowHitboxes");
+        public string StarColor_ShowHitboxes => StarColor("ShowHitboxes");
+        public string StarTextColor_ShowHitboxes => StarTextColor("ShowHitboxes");
+        public string StarBg_ShowHitboxes => StarBg("ShowHitboxes");
+        public string StarBorder_ShowHitboxes => StarBorder("ShowHitboxes");
         public bool IsFav_Worm => IsFav("Worm");
         public string StarChar_Worm => StarChar("Worm");
         public string StarText_Worm => StarText("Worm");
@@ -945,75 +988,75 @@ namespace AICTrainer.ViewModels
 
         // ======================= 业务数值与开关绑定 =======================
         // 1. HP
-        public int TargetHp { get => Config.TargetHp; set { Config.TargetHp = value; OnPropertyChanged(); } }
+        public int TargetHp { get => Config.TargetHp; set { Config.TargetHp = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsHpLocked { get => Config.LockHp; set { Config.LockHp = value; OnPropertyChanged(); PushConfig(); } }
 
         // 2. MP
-        public int TargetMp { get => Config.TargetMp; set { Config.TargetMp = value; OnPropertyChanged(); } }
+        public int TargetMp { get => Config.TargetMp; set { Config.TargetMp = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsMpLocked { get => Config.LockMp; set { Config.LockMp = value; OnPropertyChanged(); PushConfig(); } }
 
         // 3. MP 破损程度
-        public int TargetMpCrack { get => Config.TargetMpCrack; set { Config.TargetMpCrack = value; OnPropertyChanged(); } }
+        public int TargetMpCrack { get => Config.TargetMpCrack; set { Config.TargetMpCrack = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsMpCrackLocked { get => Config.ModifyMpCrack; set { Config.ModifyMpCrack = value; OnPropertyChanged(); PushConfig(); } }
 
         // 4. 背包容量
-        public int TargetInventoryCapacity { get => Config.TargetInventoryCapacity; set { Config.TargetInventoryCapacity = value; OnPropertyChanged(); } }
+        public int TargetInventoryCapacity { get => Config.TargetInventoryCapacity; set { Config.TargetInventoryCapacity = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsInventoryLocked { get => Config.ModifyInventoryCapacity; set { Config.ModifyInventoryCapacity = value; OnPropertyChanged(); PushConfig(); } }
 
         // 5. 饱食度上限
-        public int TargetMaxSatiety { get => Config.TargetMaxSatiety; set { Config.TargetMaxSatiety = value; OnPropertyChanged(); } }
+        public int TargetMaxSatiety { get => Config.TargetMaxSatiety; set { Config.TargetMaxSatiety = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsMaxSatietyLocked { get => Config.ModifyMaxSatiety; set { Config.ModifyMaxSatiety = value; OnPropertyChanged(); PushConfig(); } }
 
         // 6. 当前饱食度
-        public float TargetSatiety { get => Config.TargetSatiety; set { Config.TargetSatiety = value; OnPropertyChanged(); } }
+        public float TargetSatiety { get => Config.TargetSatiety; set { Config.TargetSatiety = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsSatietyLocked { get => Config.ModifySatiety; set { Config.ModifySatiety = value; OnPropertyChanged(); PushConfig(); } }
 
         // 7. 兴奋度
-        public int TargetEp { get => Config.TargetEp; set { Config.TargetEp = value; OnPropertyChanged(); } }
+        public int TargetEp { get => Config.TargetEp; set { Config.TargetEp = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsEpLocked { get => Config.ModifyEp; set { Config.ModifyEp = value; OnPropertyChanged(); PushConfig(); } }
 
         // 8. 走路速度 (独立块)
-        public float WalkSpeedMultiplier { get => Config.WalkSpeedMultiplier; set { Config.WalkSpeedMultiplier = value; OnPropertyChanged(); } }
+        public float WalkSpeedMultiplier { get => Config.WalkSpeedMultiplier; set { Config.WalkSpeedMultiplier = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsWalkSpeedLocked { get => Config.LockWalkSpeed; set { Config.LockWalkSpeed = value; OnPropertyChanged(); PushConfig(); } }
 
         // 9. 跑步速度 (独立块)
-        public float RunSpeedMultiplier { get => Config.RunSpeedMultiplier; set { Config.RunSpeedMultiplier = value; OnPropertyChanged(); } }
+        public float RunSpeedMultiplier { get => Config.RunSpeedMultiplier; set { Config.RunSpeedMultiplier = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsRunSpeedLocked { get => Config.LockRunSpeed; set { Config.LockRunSpeed = value; OnPropertyChanged(); PushConfig(); } }
 
         // 10. 抓地力数值与防滑
-        public float TargetGrip { get => Config.TargetGrip; set { Config.TargetGrip = value; OnPropertyChanged(); } }
+        public float TargetGrip { get => Config.TargetGrip; set { Config.TargetGrip = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsGripLocked { get => Config.LockGrip; set { Config.LockGrip = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsNoSlipEnabled { get => Config.NoGripReduction; set { Config.NoGripReduction = value; OnPropertyChanged(); PushConfig(); } }
 
         // 11. 硬直时长
-        public int TargetKnockbackTime { get => Config.TargetKnockbackTime; set { Config.TargetKnockbackTime = value; OnPropertyChanged(); } }
+        public int TargetKnockbackTime { get => Config.TargetKnockbackTime; set { Config.TargetKnockbackTime = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsKnockbackLocked { get => Config.ModifyKnockbackTime; set { Config.ModifyKnockbackTime = value; OnPropertyChanged(); PushConfig(); } }
 
         // 12. 插槽容量
-        public int TargetSlotCapacity { get => Config.TargetSlotCapacity; set { Config.TargetSlotCapacity = value; OnPropertyChanged(); } }
+        public int TargetSlotCapacity { get => Config.TargetSlotCapacity; set { Config.TargetSlotCapacity = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsSlotLocked { get => Config.ModifySlotCapacity; set { Config.ModifySlotCapacity = value; OnPropertyChanged(); PushConfig(); } }
 
         // 13. 危险度
-        public int TargetDangerLevel { get => Config.TargetDangerLevel; set { Config.TargetDangerLevel = value; OnPropertyChanged(); } }
+        public int TargetDangerLevel { get => Config.TargetDangerLevel; set { Config.TargetDangerLevel = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsDangerLocked { get => Config.LockDangerLevel; set { Config.LockDangerLevel = value; Config.ModifyDangerLevel = value; OnPropertyChanged(); PushConfig(); } }
 
         // 14. 资产与各类货币
-        public int TargetGold { get => Config.TargetGold; set { Config.TargetGold = value; OnPropertyChanged(); } }
+        public int TargetGold { get => Config.TargetGold; set { Config.TargetGold = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsGoldLocked { get => Config.LockGold; set { Config.LockGold = value; OnPropertyChanged(); PushConfig(); } }
 
-        public int TargetCrafts { get => Config.TargetCrafts; set { Config.TargetCrafts = value; OnPropertyChanged(); } }
+        public int TargetCrafts { get => Config.TargetCrafts; set { Config.TargetCrafts = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsCraftsLocked { get => Config.LockCrafts; set { Config.LockCrafts = value; OnPropertyChanged(); PushConfig(); } }
 
-        public int TargetJuice { get => Config.TargetJuice; set { Config.TargetJuice = value; OnPropertyChanged(); } }
+        public int TargetJuice { get => Config.TargetJuice; set { Config.TargetJuice = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsJuiceLocked { get => Config.LockJuice; set { Config.LockJuice = value; OnPropertyChanged(); PushConfig(); } }
 
-        public int TargetBarScore { get => Config.TargetBarScore; set { Config.TargetBarScore = value; OnPropertyChanged(); } }
+        public int TargetBarScore { get => Config.TargetBarScore; set { Config.TargetBarScore = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsBarScoreLocked { get => Config.LockBarScore; set { Config.LockBarScore = value; OnPropertyChanged(); PushConfig(); } }
 
-        public int TargetGuildPoints { get => Config.TargetGuildPoints; set { Config.TargetGuildPoints = value; OnPropertyChanged(); } }
+        public int TargetGuildPoints { get => Config.TargetGuildPoints; set { Config.TargetGuildPoints = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsGuildPointsLocked { get => Config.LockGuildPoints; set { Config.LockGuildPoints = value; OnPropertyChanged(); PushConfig(); } }
 
-        public int TargetLanthanum { get => Config.TargetLanthanum; set { Config.TargetLanthanum = value; OnPropertyChanged(); } }
+        public int TargetLanthanum { get => Config.TargetLanthanum; set { Config.TargetLanthanum = value; OnPropertyChanged(); if (IsSaveConfigEnabled) SaveConfigSettings(); } }
         public bool IsLanthanumLocked { get => Config.LockLanthanum; set { Config.LockLanthanum = value; OnPropertyChanged(); PushConfig(); } }
 
         // 纯开关类
@@ -1026,6 +1069,82 @@ namespace AICTrainer.ViewModels
         public bool IsJustGuardNoHit { get => Config.JustGuardNoHit; set { Config.JustGuardNoHit = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsExtendedJustGuard { get => Config.ExtendedJustGuard; set { Config.ExtendedJustGuard = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsDisableHitCheck { get => Config.DisableHitCheck; set { Config.DisableHitCheck = value; OnPropertyChanged(); PushConfig(); } }
+        public bool IsShowHitboxes { get => Config.ShowHitboxes; set { Config.ShowHitboxes = value; OnPropertyChanged(); PushConfig(); } }
+
+        // 判定框展示条目细粒度控制 (弹窗配置)
+        public bool IsHitboxShowName
+        {
+            get => Config.HitboxShowName;
+            set
+            {
+                if (Config.HitboxShowName != value)
+                {
+                    Config.HitboxShowName = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HitboxConfigSummaryText));
+                    PushConfig();
+                }
+            }
+        }
+
+        public bool IsHitboxShowHp
+        {
+            get => Config.HitboxShowHp;
+            set
+            {
+                if (Config.HitboxShowHp != value)
+                {
+                    Config.HitboxShowHp = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HitboxConfigSummaryText));
+                    PushConfig();
+                }
+            }
+        }
+
+        public bool IsHitboxShowMp
+        {
+            get => Config.HitboxShowMp;
+            set
+            {
+                if (Config.HitboxShowMp != value)
+                {
+                    Config.HitboxShowMp = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HitboxConfigSummaryText));
+                    PushConfig();
+                }
+            }
+        }
+
+        public bool IsHitboxShowAtkInfo
+        {
+            get => Config.HitboxShowAtkInfo;
+            set
+            {
+                if (Config.HitboxShowAtkInfo != value)
+                {
+                    Config.HitboxShowAtkInfo = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HitboxConfigSummaryText));
+                    PushConfig();
+                }
+            }
+        }
+
+        public string HitboxConfigSummaryText
+        {
+            get
+            {
+                var hurt = new List<string>();
+                if (IsHitboxShowName) hurt.Add("名字");
+                if (IsHitboxShowHp) hurt.Add("HP");
+                if (IsHitboxShowMp) hurt.Add("MP");
+                string hurtStr = hurt.Count > 0 ? string.Join("+", hurt) : "无文本";
+                string atkStr = IsHitboxShowAtkInfo ? "攻击信息" : "仅边框";
+                return $"受击:[{hurtStr}] 攻击:[{atkStr}]";
+            }
+        }
         public bool IsFastTravelAnytime { get => Config.FastTravelAnytime; set { Config.FastTravelAnytime = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsFastTravelAnywhere { get => Config.FastTravelAnywhere; set { Config.FastTravelAnywhere = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsAlwaysHungryBonus { get => Config.AlwaysHungryBonus; set { Config.AlwaysHungryBonus = value; OnPropertyChanged(); PushConfig(); } }
@@ -1232,6 +1351,10 @@ namespace AICTrainer.ViewModels
         public void PushConfig()
         {
             Client.SendConfig(Config);
+            if (IsSaveConfigEnabled)
+            {
+                SaveConfigSettings();
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

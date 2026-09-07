@@ -166,6 +166,92 @@ namespace AICShared
 
         // 34. 禁止受击判定 (完全免疫受击/攻击穿透)
         public bool DisableHitCheck;
+
+        // 35. 判定框展示 (蓝框为受击框，红框为攻击框)
+        public bool ShowHitboxes;
+        public bool HitboxShowName = true; // 受击框显示名字 (第1行)
+        public bool HitboxShowHp = true;   // 受击框显示HP (第2行)
+        public bool HitboxShowMp = true;   // 受击框显示MP (第3行)
+        public bool HitboxShowAtkInfo = true; // 攻击框显示攻击信息
+
+        public ModConfigDto Clone()
+        {
+            var copy = new ModConfigDto();
+            copy.CopyFrom(this);
+            return copy;
+        }
+
+        public void CopyFrom(ModConfigDto other)
+        {
+            if (other == null) return;
+            DisableMosaic = other.DisableMosaic;
+            LockHp = other.LockHp;
+            TargetHp = other.TargetHp;
+            LockMp = other.LockMp;
+            TargetMp = other.TargetMp;
+            ModifyMpCrack = other.ModifyMpCrack;
+            TargetMpCrack = other.TargetMpCrack;
+            ModifyInventoryCapacity = other.ModifyInventoryCapacity;
+            TargetInventoryCapacity = other.TargetInventoryCapacity;
+            NoWormTrap = other.NoWormTrap;
+            NoSpikeDamage = other.NoSpikeDamage;
+            NoThunderDamage = other.NoThunderDamage;
+            NoDrownDamage = other.NoDrownDamage;
+            NoAcidDamage = other.NoAcidDamage;
+            OneHitKill = other.OneHitKill;
+            ModifyMaxSatiety = other.ModifyMaxSatiety;
+            TargetMaxSatiety = other.TargetMaxSatiety;
+            ModifySatiety = other.ModifySatiety;
+            TargetSatiety = other.TargetSatiety;
+            ModifyEp = other.ModifyEp;
+            TargetEp = other.TargetEp;
+            ShieldNeverBreak = other.ShieldNeverBreak;
+            FastTravelAnytime = other.FastTravelAnytime;
+            FastTravelAnywhere = other.FastTravelAnywhere;
+            AlwaysHungryBonus = other.AlwaysHungryBonus;
+            LockWalkSpeed = other.LockWalkSpeed;
+            WalkSpeedMultiplier = other.WalkSpeedMultiplier;
+            LockRunSpeed = other.LockRunSpeed;
+            RunSpeedMultiplier = other.RunSpeedMultiplier;
+            ModifyKnockbackTime = other.ModifyKnockbackTime;
+            TargetKnockbackTime = other.TargetKnockbackTime;
+            BreakFoodAttrLimit = other.BreakFoodAttrLimit;
+            ModifySlotCapacity = other.ModifySlotCapacity;
+            TargetSlotCapacity = other.TargetSlotCapacity;
+            SaveAnywhere = other.SaveAnywhere;
+            FreezeCountdown = other.FreezeCountdown;
+            ModifyDangerLevel = other.ModifyDangerLevel;
+            TargetDangerLevel = other.TargetDangerLevel;
+            LockDangerLevel = other.LockDangerLevel;
+            LockGrip = other.LockGrip;
+            TargetGrip = other.TargetGrip;
+            NoGripReduction = other.NoGripReduction;
+            InfiniteJump = other.InfiniteJump;
+            ImmuneAbnormalStatus = other.ImmuneAbnormalStatus;
+            InstantMagicCharge = other.InstantMagicCharge;
+            NoBurstTired = other.NoBurstTired;
+            LockGold = other.LockGold;
+            TargetGold = other.TargetGold;
+            LockCrafts = other.LockCrafts;
+            TargetCrafts = other.TargetCrafts;
+            LockJuice = other.LockJuice;
+            TargetJuice = other.TargetJuice;
+            LockBarScore = other.LockBarScore;
+            TargetBarScore = other.TargetBarScore;
+            LockGuildPoints = other.LockGuildPoints;
+            TargetGuildPoints = other.TargetGuildPoints;
+            LockLanthanum = other.LockLanthanum;
+            TargetLanthanum = other.TargetLanthanum;
+            JustGuardNoHit = other.JustGuardNoHit;
+            ExtendedJustGuard = other.ExtendedJustGuard;
+            DojoAlwaysWin = other.DojoAlwaysWin;
+            DisableHitCheck = other.DisableHitCheck;
+            ShowHitboxes = other.ShowHitboxes;
+            HitboxShowName = other.HitboxShowName;
+            HitboxShowHp = other.HitboxShowHp;
+            HitboxShowMp = other.HitboxShowMp;
+            HitboxShowAtkInfo = other.HitboxShowAtkInfo;
+        }
     }
 
     [Serializable]

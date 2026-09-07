@@ -568,14 +568,23 @@
 
                     <!-- 2. 全局快捷操作栏 -->
                     <Border Grid.Row="1" Background="#11111A" BorderBrush="{StaticResource BorderDark}" BorderThickness="0,0,0,1" Padding="16,6">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="快捷指令:" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
-                            <Button Content="💖 一键全满" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickFullHeal"/>
-                            <Button Content="✨ 修复裂痕" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickCureCracks"/>
-                            <Button Content="🌿 清除异常" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickCureSer"/>
-                            <Button Content="🍽️ 清空饱食" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickClearSatiety"/>
-                            <Button Content="❄️ 清空兴奋" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickClearEp"/>
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="快捷指令:" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
+                                <Button Content="💖 一键全满" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickFullHeal"/>
+                                <Button Content="✨ 修复裂痕" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickCureCracks"/>
+                                <Button Content="🌿 清除异常" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickCureSer"/>
+                                <Button Content="🍽️ 清空饱食" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickClearSatiety"/>
+                                <Button Content="❄️ 清空兴奋" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickClearEp"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <CheckBox Style="{StaticResource ModernToggleSwitch}" Content="保存配置" IsChecked="{Binding IsSaveConfigEnabled}" VerticalAlignment="Center" ToolTip="开启后自动持久化当前所有修改项开关与数值，下次启动修改器自动恢复并勾选"/>
+                            </StackPanel>
+                        </Grid>
                     </Border>
 
                     <!-- 3. 主卡片功能滚动展示区 -->
@@ -1622,6 +1631,55 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="敌方攻击、抓取与投射物无法命中角色，彻底阻断硬直、伤害与受击状态" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                     <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" Content="免受击开启" IsChecked="{Binding IsDisableHitCheck}"/>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <!-- 判定框展示 -->
+                    <Border Visibility="{Binding Vis_ShowHitboxes}" Style="{StaticResource FeatureCard}" Cursor="Hand" MouseLeftButtonUp="OnHitboxCardClick" ToolTip="点击卡片可弹出配置弹窗，单独控制受击框与攻击框的显示条目">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- 左侧表情图标 -->
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" BorderBrush="#383852" BorderThickness="1" Background="#141420" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Border.Clip>
+                                    <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,40,40"/>
+                                </Border.Clip>
+                                <Image Source="{h:Sticker 3_1}" Stretch="UniformToFill"/>
+                            </Border>
+                            <!-- 右侧主体内容 -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="判定框展示" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="13"/>
+                                        <Border Margin="8,0,0,0" Background="#1E293B" CornerRadius="6" Padding="6,1">
+                                            <TextBlock Text="受击蓝框 / 攻击红框" Foreground="#38BDF8" FontSize="11"/>
+                                        </Border>
+                                        <Button Content="⚙️ 配置条目" Style="{StaticResource PillButton}" Margin="8,0,0,0" Padding="6,2" FontSize="11" Click="OnHitboxConfigClick" ToolTip="打开条目显示配置弹窗"/>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Style="{StaticResource StarButton}" Command="{Binding ToggleFavCommand}" CommandParameter="ShowHitboxes" Background="{Binding StarBg_ShowHitboxes}" BorderBrush="{Binding StarBorder_ShowHitboxes}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StarChar_ShowHitboxes}" Foreground="{Binding StarColor_ShowHitboxes}" FontSize="15" FontWeight="Bold" Margin="0,-2,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding StarText_ShowHitboxes}" Foreground="{Binding StarTextColor_ShowHitboxes}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <TextBlock Text="在游戏画面中实时绘制角色与敌人的受击框（蓝框）以及攻击判定框（红框）" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding HitboxConfigSummaryText}" Foreground="#38BDF8" FontSize="11" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" Content="展示开启" IsChecked="{Binding IsShowHitboxes}"/>
                                 </Grid>
                             </Grid>
                         </Grid>
