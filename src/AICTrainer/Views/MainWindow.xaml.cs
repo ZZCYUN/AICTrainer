@@ -17,6 +17,7 @@ namespace AICTrainer.Views
 
         private void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
+            _vm.NotifyAllProperties();
             var settings = TrainerSettings.Load();
             if (!settings.DoNotShowDisclaimer)
             {
@@ -112,6 +113,10 @@ namespace AICTrainer.Views
 
         protected override void OnClosed(EventArgs e)
         {
+            if (_vm.IsSaveConfigEnabled)
+            {
+                _vm.SaveConfigSettings();
+            }
             base.OnClosed(e);
             Application.Current.Shutdown();
         }

@@ -27,6 +27,12 @@ namespace AICTrainer.Services
             }
         }
 
+        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            IncludeFields = true
+        };
+
         public static TrainerSettings Load()
         {
             try
@@ -34,7 +40,7 @@ namespace AICTrainer.Services
                 if (File.Exists(SettingsPath))
                 {
                     string json = File.ReadAllText(SettingsPath);
-                    return JsonSerializer.Deserialize<TrainerSettings>(json) ?? new TrainerSettings();
+                    return JsonSerializer.Deserialize<TrainerSettings>(json, JsonOptions) ?? new TrainerSettings();
                 }
             }
             catch { }
@@ -45,7 +51,7 @@ namespace AICTrainer.Services
         {
             try
             {
-                string json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
+                string json = JsonSerializer.Serialize(this, JsonOptions);
                 File.WriteAllText(SettingsPath, json);
             }
             catch { }

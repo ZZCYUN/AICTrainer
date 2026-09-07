@@ -69,16 +69,26 @@ namespace AICTrainer.ViewModels
             }
         }
 
-        private void SaveConfigSettings()
+        public void SaveConfigSettings()
         {
             try
             {
                 var settings = TrainerSettings.Load();
                 settings.RememberConfig = _isSaveConfigEnabled;
                 settings.SavedConfig = _isSaveConfigEnabled ? Config.Clone() : null;
+                settings.Favorites = new List<string>(_favoriteKeys);
                 settings.Save();
             }
             catch { }
+        }
+
+        public void NotifyAllProperties()
+        {
+            OnPropertyChanged(string.Empty);
+            OnPropertyChanged(nameof(CategoryActiveStatsText));
+            OnPropertyChanged(nameof(HitboxConfigSummaryText));
+            OnPropertyChanged(nameof(IsSaveConfigEnabled));
+            RefreshAllCardVisibilities();
         }
 
         public MainViewModel()
