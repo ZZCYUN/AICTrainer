@@ -1827,26 +1827,18 @@
                                         </StackPanel>
                                     </Button>
                                 </Grid>
-                                <Grid Grid.Row="1" Margin="0,4,0,0">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <!-- 第1行：输入框与实时倍率数值 -->
-                                    <Grid Grid.Row="0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="倍率: " Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
-                                        <TextBox Grid.Column="1" Width="80" Text="{Binding DamageMultiplierText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Margin="6,0,6,0" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="x (无上限防溢出)" Foreground="{StaticResource AccentCyan}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                    </Grid>
-                                    <!-- 第2行：功能开关 -->
-                                    <Grid Grid.Row="1" Margin="0,8,0,0">
-                                        <CheckBox Style="{StaticResource ModernToggleSwitch}" Content="伤害倍率生效" IsChecked="{Binding IsDamageMultiplierEnabled}"/>
-                                    </Grid>
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="倍率: " Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
+                                    <TextBox Grid.Column="1" Width="80" Text="{Binding DamageMultiplierText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Margin="4,0,4,0" VerticalAlignment="Center" ToolTip="支持输入任意倍率数值（内置防溢出保护）"/>
+                                    <TextBlock Grid.Column="2" Text="x" Foreground="{StaticResource AccentCyan}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
+                                    <CheckBox Grid.Column="4" Style="{StaticResource ModernToggleSwitch}" Content="倍率开启" IsChecked="{Binding IsDamageMultiplierEnabled}" HorizontalAlignment="Right"/>
                                 </Grid>
                             </Grid>
                         </Grid>
