@@ -10,35 +10,25 @@ namespace AICMod.Patches
 {
     public static class CombatPatch
     {
-        // 1. 秒杀：Hook NelEnemy 的核心伤害结算与伤害倍率，并同步游戏原生 DEBUGMIGHTY 标志
-        [HarmonyPatch(typeof(NelEnemy), "applyDamage", new[] { typeof(NelAttackInfo), typeof(HITTYPE), typeof(bool) }, new[] { ArgumentType.Normal, ArgumentType.Ref, ArgumentType.Normal })]
-        [HarmonyPrefix]
-        public static void Prefix_NelEnemy_applyDamage(NelEnemy __instance, NelAttackInfo Atk)
-        {
-            if (AICModConfig.Current.OneHitKill && Atk != null && __instance != null)
-            {
-                // 仅当玩家（Noel）或其魔法/法球造成伤害时触发秒杀，避免怪物间互动出现异常
-                if (Atk.Caster is M2AttackableP || Atk.Caster is PR || (Atk.Caster is MagicItem mg && mg.Caster is PR))
-                {
-                    int maxHp = (int)__instance.get_maxhp();
-                    int lethal = Math.Max(9999999, maxHp * 64);
-                    Atk.hpdmg0 = lethal;
-                    Atk.hpdmg_current = lethal;
-                }
-            }
-        }
-
+        // 1. 伤害倍率与秒杀比例：Hook NelEnemy.applyHpDamageRatio 保证底层伤害结算与 DamageCounter 飘字完全同步放大
         [HarmonyPatch(typeof(NelEnemy), "applyHpDamageRatio", new[] { typeof(AttackInfo) })]
         [HarmonyPostfix]
         public static void Postfix_NelEnemy_applyHpDamageRatio(NelEnemy __instance, AttackInfo Atk, ref float __result)
         {
-            if (AICModConfig.Current.OneHitKill && Atk != null && __instance != null)
+            if (Atk == null || __instance == null) return;
+
+            object? caster = (Atk as NelAttackInfo)?.Caster ?? (object?)Atk.AttackFrom ?? (Atk as NelAttackInfo)?.PublishMagic?.Caster;
+            bool isPlayer = caster is M2AttackableP || caster is PR || caster is M2MoverPr || (caster is MagicItem mg && (mg.Caster is PR || mg.Caster is M2MoverPr));
+            if (!isPlayer) return;
+
+            var cfg = AICModConfig.Current;
+            if (cfg.OneHitKill)
             {
-                object? caster = (Atk as NelAttackInfo)?.Caster ?? (object?)Atk.AttackFrom;
-                if (caster is M2AttackableP || caster is PR || (caster is MagicItem mg && mg.Caster is PR))
-                {
-                    __result = Math.Max(__result, 100f);
-                }
+                __result = Math.Max(__result, 100f);
+            }
+            else if (cfg.EnableDamageMultiplier && cfg.DamageMultiplier > 0f && Math.Abs(cfg.DamageMultiplier - 1.0f) > 0.001f)
+            {
+                __result *= cfg.DamageMultiplier;
             }
         }
 
@@ -54,7 +44,7 @@ namespace AICMod.Patches
             public int mpdmg_current;
         }
 
-        // 1b. 伤害倍率修改与一击秒杀：挂钩 NelEnemy.applyDamage 确保伤害结算与飘字（DamageCounter）完全同步
+        // 1b. 伤害倍率修改与一击秒杀：挂钩 NelEnemy.applyDamage 确保秒杀、固定伤害(fix_damage)及 MP 伤害完全同步
         [HarmonyPatch]
         public static class Patch_NelEnemy_applyDamage
         {
@@ -74,7 +64,8 @@ namespace AICMod.Patches
                 if (Atk == null || __instance == null) return;
 
                 var cfg = AICModConfig.Current;
-                bool isPlayer = Atk.Caster is M2AttackableP || Atk.Caster is PR || (Atk.Caster is MagicItem mg && mg.Caster is PR);
+                object? caster = Atk.Caster ?? (object?)Atk.AttackFrom ?? Atk.PublishMagic?.Caster;
+                bool isPlayer = caster is M2AttackableP || caster is PR || caster is M2MoverPr || (caster is MagicItem mg && (mg.Caster is PR || mg.Caster is M2MoverPr));
                 if (!isPlayer) return;
 
                 _insideApplyDamage = true;
@@ -110,10 +101,14 @@ namespace AICMod.Patches
                         mpdmg_current = Atk.mpdmg_current
                     };
 
-                    Atk.hpdmg0 = (int)Math.Max(1, Math.Round(Atk.hpdmg0 * cfg.DamageMultiplier));
-                    if (Atk.hpdmg_current != -1000)
+                    // 若攻击指定固定伤害 (fix_damage)，此时 applyHpDamageRatio 不会参与运算，因此直接放大 Atk 的基础伤害
+                    if (Atk.fix_damage)
                     {
-                        Atk.hpdmg_current = (int)Math.Max(1, Math.Round(Atk.hpdmg_current * cfg.DamageMultiplier));
+                        Atk.hpdmg0 = (int)Math.Max(1, Math.Round(Atk.hpdmg0 * cfg.DamageMultiplier));
+                        if (Atk.hpdmg_current != -1000)
+                        {
+                            Atk.hpdmg_current = (int)Math.Max(1, Math.Round(Atk.hpdmg_current * cfg.DamageMultiplier));
+                        }
                     }
                     if (Atk.mpdmg0 > 0)
                     {
@@ -161,7 +156,8 @@ namespace AICMod.Patches
                 if (Atk == null || __instance == null) return;
 
                 var cfg = AICModConfig.Current;
-                bool isPlayer = Atk.Caster is M2AttackableP || Atk.Caster is PR || (Atk.Caster is MagicItem mg && mg.Caster is PR);
+                object? caster = Atk.Caster ?? (object?)Atk.AttackFrom ?? Atk.PublishMagic?.Caster;
+                bool isPlayer = caster is M2AttackableP || caster is PR || caster is M2MoverPr || (caster is MagicItem mg && (mg.Caster is PR || mg.Caster is M2MoverPr));
                 if (!isPlayer) return;
 
                 if (cfg.OneHitKill)
@@ -494,7 +490,8 @@ namespace AICMod.Patches
                 var nelAtk = ray.Atk as NelAttackInfo;
                 if (!isPr && nelAtk != null)
                 {
-                    isPr = nelAtk.Caster is PR || (nelAtk.Caster is M2Mover mv2 && mv2 is PR) || (nelAtk.Caster is MagicItem mgc && mgc.Caster is PR);
+                    object? caster = nelAtk.Caster ?? (object?)nelAtk.AttackFrom ?? nelAtk.PublishMagic?.Caster;
+                    isPr = caster is PR || caster is M2MoverPr || (caster is MagicItem mgc && (mgc.Caster is PR || mgc.Caster is M2MoverPr));
                 }
 
                 if (isPr)
@@ -581,6 +578,38 @@ namespace AICMod.Patches
                     nelAtk.attack_max0 = __state.AttackMax;
                     nelAtk.resetAttackCount();
                 }
+            }
+        }
+
+        // 12b. 针对诺艾尔近战冲撞/挥击/脚踢等基础招式，挂钩 runTackle 扩大判定范围与距离
+        [HarmonyPatch(typeof(MagicItem), "runTackle")]
+        public static class Patch_MagicItem_runTackle
+        {
+            [HarmonyPrefix]
+            public static void Prefix(MagicItem Mg, out (bool Active, float sx, float sy, float sz) __state)
+            {
+                __state = default;
+                if (Mg == null) return;
+                var cfg = AICModConfig.Current;
+                if (!cfg.EnableNoelAttackScale || cfg.NoelAttackScale <= 1.0f) return;
+
+                bool isPr = Mg.Caster is PR || Mg.Caster is M2MoverPr;
+                if (!isPr) return;
+                if (cfg.NoelAttackOnlyMelee && !Patch_M2Ray_Cast.IsMeleeKind(Mg.kind)) return;
+
+                __state = (true, Mg.sx, Mg.sy, Mg.sz);
+                Mg.sx *= cfg.NoelAttackScale;
+                Mg.sy *= cfg.NoelAttackScale;
+                Mg.sz *= cfg.NoelAttackScale;
+            }
+
+            [HarmonyPostfix]
+            public static void Postfix(MagicItem Mg, (bool Active, float sx, float sy, float sz) __state)
+            {
+                if (!__state.Active || Mg == null) return;
+                Mg.sx = __state.sx;
+                Mg.sy = __state.sy;
+                Mg.sz = __state.sz;
             }
         }
     }

@@ -1247,6 +1247,7 @@ namespace AICTrainer.ViewModels
                     Config.EnableDamageMultiplier = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(CategoryActiveStatsText));
+                    if (IsSaveConfigEnabled) SaveConfigSettings();
                     PushConfig();
                 }
             }
