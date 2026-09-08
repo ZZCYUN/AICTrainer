@@ -312,4 +312,20 @@ namespace AICShared
     {
         public System.Collections.Generic.List<MapEntryDto> Maps = new System.Collections.Generic.List<MapEntryDto>();
     }
+
+    [Serializable]
+    public class ItemEntryDto
+    {
+        public string Key = string.Empty;            // 物品 key，如 fruit_cherry0
+        public string Name = string.Empty;           // 中文名（游戏内本地化）
+        public string Category = string.Empty;       // 分类枚举名，如 FOOD
+        public string CategoryZh = string.Empty;     // 分类中文名，如 料理
+        public int OwnedCount = -1;                  // 当前持有数，-1 表示未知
+    }
+
+    [Serializable]
+    public class ItemListDto
+    {
+        public System.Collections.Generic.List<ItemEntryDto> Items = new System.Collections.Generic.List<ItemEntryDto>();
+    }
 }
