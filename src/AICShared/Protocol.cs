@@ -192,6 +192,9 @@ namespace AICShared
         public bool ReelSlowFirstItem { get => ReelFirstSlow; set => ReelFirstSlow = value; }
         public bool ReelAutoDecideBest { get => ReelBonusAutoDecide; set => ReelBonusAutoDecide = value; }
 
+        // 39. 战斗地图内访问背包
+        public bool AllowBattleBackpack;
+
         public ModConfigDto Clone()
         {
             var copy = new ModConfigDto();
@@ -265,6 +268,7 @@ namespace AICShared
             DojoAlwaysWin = other.DojoAlwaysWin;
             DisableHitCheck = other.DisableHitCheck;
             ShowHitboxes = other.ShowHitboxes;
+            AllowBattleBackpack = other.AllowBattleBackpack;
             HitboxShowName = other.HitboxShowName;
             HitboxShowHp = other.HitboxShowHp;
             HitboxShowMp = other.HitboxShowMp;
