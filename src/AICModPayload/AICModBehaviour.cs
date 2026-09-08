@@ -972,6 +972,134 @@ namespace AICMod
             }
         }
 
+        public static (int x, int y) CalculateSafeLandingPos(NelM2DBase nm2d, Map2d targetMap)
+        {
+            if (targetMap.clms == 0 || targetMap.rows == 0)
+            {
+                try
+                {
+                    nm2d.readMapBody(targetMap);
+                    targetMap.load();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[AICMod] Failed to pre-load map layout: " + ex.Message);
+                }
+            }
+
+            int clms = targetMap.clms > 0 ? targetMap.clms : 40;
+            int rows = targetMap.rows > 0 ? targetMap.rows : 30;
+            int targetX = clms / 2;
+            int targetY = rows / 2;
+
+            try
+            {
+                // 1. 优先寻找官方传送着陆点 "WarpTo" (游戏原生传送着陆标记)
+                M2LabelPoint warpTo = targetMap.getLabelPoint("WarpTo");
+                if (warpTo != null)
+                {
+                    targetX = (int)warpTo.mapfocx;
+                    targetY = (int)warpTo.mapfocy;
+                    return (targetX, targetY);
+                }
+
+                // 2. 寻找长椅标记 "Bench" / "bench" (长椅处有坚实地面且安全)
+                M2LabelPoint bench = targetMap.getLabelPoint("Bench") ?? targetMap.getLabelPoint("bench");
+                if (bench != null)
+                {
+                    targetX = (int)bench.mapfocx;
+                    targetY = (int)bench.mapfocy;
+                    return (targetX, targetY);
+                }
+
+                // 3. 寻找默认出生点 "start" / "Start"
+                M2LabelPoint start = targetMap.getLabelPoint("start") ?? targetMap.getLabelPoint("Start");
+                if (start != null)
+                {
+                    targetX = (int)start.mapfocx;
+                    targetY = (int)start.mapfocy;
+                    return (targetX, targetY);
+                }
+
+                // 4. 寻找传送门或出入口矩形 (M2LpMapTransferBase 或带有 door/transfer/warp 关键字)
+                M2LabelPoint door = targetMap.getLabelPoint((M2LabelPoint p) =>
+                    p is nel.M2LpMapTransferBase ||
+                    p.key.IndexOf("transfer", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    p.key.IndexOf("door", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    p.key.IndexOf("warp", StringComparison.OrdinalIgnoreCase) >= 0);
+                if (door != null)
+                {
+                    targetX = (int)door.mapfocx;
+                    targetY = (int)door.mapfocy;
+                    return (targetX, targetY);
+                }
+
+                // 5. 从大地图 WholeMapItem 寻找该地图的标记图标坐标
+                if (nm2d.WM != null)
+                {
+                    var wm = nm2d.WM.GetWholeFor(targetMap);
+                    if (wm != null)
+                    {
+                        var icons = wm.GetIconVectorFor(targetMap);
+                        if (icons != null && icons.Count > 0)
+                        {
+                            targetX = (int)icons[0].x;
+                            targetY = (int)icons[0].y;
+                            return (targetX, targetY);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] Error querying label points: " + ex.Message);
+            }
+
+            // 6. 无任何预设标记时的通用安全地面探测：限制边界并从中心向两侧扫描坚实地面
+            try
+            {
+                targetX = Mathf.Clamp(targetX, 2, Mathf.Max(2, clms - 3));
+                targetY = Mathf.Clamp(targetY, 2, Mathf.Max(2, rows - 3));
+
+                float fy = targetMap.getFootableY(targetX + 0.5f, targetY, 25, true, -1f, true);
+                if (fy > 0f && fy < rows)
+                {
+                    targetY = (int)fy;
+                }
+                else
+                {
+                    for (int d = 0; d < clms / 2; d++)
+                    {
+                        int x1 = clms / 2 + d;
+                        int x2 = clms / 2 - d;
+                        if (x1 > 2 && x1 < clms - 2)
+                        {
+                            float testFy = targetMap.getFootableY(x1 + 0.5f, rows / 2, rows, true, -1f, true);
+                            if (testFy > 0f && testFy < rows - 1)
+                            {
+                                targetX = x1;
+                                targetY = (int)testFy;
+                                break;
+                            }
+                        }
+                        if (x2 > 2 && x2 < clms - 2)
+                        {
+                            float testFy = targetMap.getFootableY(x2 + 0.5f, rows / 2, rows, true, -1f, true);
+                            if (testFy > 0f && testFy < rows - 1)
+                            {
+                                targetX = x2;
+                                targetY = (int)testFy;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return (targetX, targetY);
+        }
+
         public static bool TransferToMap(string mapKey)
         {
             var nm2d = GetM2D();
@@ -992,10 +1120,13 @@ namespace AICMod
                 }
             }
 
+            // 计算精准的安全落脚点坐标 (优先官方着陆点/长椅/出生点/坚实地面，彻底避免卡墙)
+            var (safeX, safeY) = CalculateSafeLandingPos(nm2d, targetMap);
+
             try
             {
                 // 使用游戏原生的事件堆栈执行传送流程 (与长椅/地图传送流程完全一致)
-                // 1. 关闭菜单 2. 异步加载地图素材 3. 等待加载完成 4. 执行快速传送
+                // 1. 关闭菜单 2. 异步加载地图素材 3. 等待加载完成 4. 执行快速传送 (传递 safeX, safeY, delay=0 消除自动位移卡墙)
                 var evReader = new evt.EvReader("%TRAINER_WARP");
                 STB sTB = TX.PopBld();
                 sTB += "UIGM DEACTIVATE\n";
@@ -1003,14 +1134,14 @@ namespace AICMod
                 sTB += "INIT_MAP_MATERIAL " + mapKey + " 1\n";
                 sTB += "WAIT 20\n";
                 sTB += "WAIT_FN MAP_TRANSFER\n";
-                sTB += "NEL_EXECUTE_FAST_TRAVEL '" + mapKey + "' 0 0 20\n";
+                sTB += "NEL_EXECUTE_FAST_TRAVEL '" + mapKey + "' " + safeX + " " + safeY + " 0\n";
                 sTB += "ALLOW_SKIP\n";
                 sTB += "WAIT_MOVE\n";
                 sTB += "PR_CURE 0 0 1\n";
                 evReader.parseText(sTB);
                 TX.ReleaseBld(sTB);
                 evt.EV.stackReader(evReader);
-                Debug.Log($"[AICMod] Queued native EV fast travel to map {mapKey}");
+                Debug.Log($"[AICMod] Queued native EV fast travel to {mapKey} at safe pos ({safeX}, {safeY})");
                 return true;
             }
             catch (Exception ex)
@@ -1019,8 +1150,15 @@ namespace AICMod
                 try
                 {
                     nm2d.initMapMaterialASync(targetMap, 1, false);
-                    M2LpMapTransferBase.executeTransferFastTravel(targetMap, 0, 0, 20);
-                    Debug.Log($"[AICMod] Direct executeTransferFastTravel succeeded to {mapKey}");
+                    M2LpMapTransferBase.executeTransferFastTravel(targetMap, safeX, safeY, 0);
+                    var pr = GetPlayer();
+                    if (pr != null)
+                    {
+                        pr.quitMoveScript();
+                        pr.getPhysic()?.killSpeedForce();
+                    }
+                    nm2d.Cam.fineImmediately();
+                    Debug.Log($"[AICMod] Direct executeTransferFastTravel succeeded to {mapKey} at ({safeX}, {safeY})");
                     return true;
                 }
                 catch (Exception ex2)
@@ -1029,6 +1167,14 @@ namespace AICMod
                     try
                     {
                         nm2d.changeMap(targetMap);
+                        var pr = GetPlayer();
+                        if (pr != null)
+                        {
+                            pr.quitMoveScript();
+                            pr.getPhysic()?.killSpeedForce();
+                            pr.setTo(safeX, safeY - pr.sizey);
+                        }
+                        nm2d.Cam.fineImmediately();
                         return true;
                     }
                     catch (Exception ex3)
