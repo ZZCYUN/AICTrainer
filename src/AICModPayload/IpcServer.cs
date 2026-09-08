@@ -112,6 +112,35 @@ namespace AICMod
             }
         }
 
+        public void SendItemList(ItemListDto itemList)
+        {
+            if (!IsClientConnected || _writer == null) return;
+
+            try
+            {
+                string listJson = JsonUtility.ToJson(itemList);
+                var msg = new IpcMessage
+                {
+                    Type = "ItemList",
+                    JsonData = listJson
+                };
+                string msgJson = JsonUtility.ToJson(msg);
+
+                lock (_writeLock)
+                {
+                    if (_writer != null && _activeClient != null && _activeClient.Connected)
+                    {
+                        _writer.WriteLine(msgJson);
+                        _writer.Flush();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] Failed to send item list over IPC: " + ex.Message);
+            }
+        }
+
         private void ServerWorker()
         {
             try

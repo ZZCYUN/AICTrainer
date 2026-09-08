@@ -550,6 +550,17 @@ namespace AICMod
                         }
                         break;
 
+                    case "GetItemList":
+                        SendItemList();
+                        break;
+
+                    case "AddItem":
+                        if (!string.IsNullOrEmpty(act.StringParam))
+                        {
+                            GiveItem(act.StringParam, act.IntParam > 0 ? act.IntParam : 1);
+                        }
+                        break;
+
                     case "full_heal":
                         if (pr != null)
                         {
@@ -1054,6 +1065,172 @@ namespace AICMod
                 Debug.LogError($"[AICMod] Failed to execute official _DEBUG_GOTO_MAP: {ex}");
                 return false;
             }
+        }
+
+        #endregion
+
+        #region Item Get System
+
+        public static string GetItemCategoryChineseName(string category)
+        {
+            switch (category)
+            {
+                case "OTHER": return "其他";
+                case "INDIVIDUAL_GRADE": return "个体品质";
+                case "CURE_HP": return "回复HP";
+                case "CURE_MP": return "回复MP";
+                case "CURE_EP": return "回复EP";
+                case "MTR": return "素材";
+                case "FOR_FISHING": return "钓鱼";
+                case "WATER": return "水";
+                case "CURE_MP_CRACK": return "修复裂痕";
+                case "SER_APPLY": return "状态赋予";
+                case "SER_CURE": return "状态解除";
+                case "FRUIT": return "果实";
+                case "FOOD": return "料理";
+                case "DUST": return "尘土";
+                case "ANC": return "古董";
+                case "TOOL": return "工具";
+                case "SPECIAL": return "特殊";
+                case "SPECIAL_USE": return "特殊用途";
+                case "ENHANCER": return "强化";
+                case "BOMB": return "炸弹";
+                case "BOTTLE": return "瓶子";
+                default: return category;
+            }
+        }
+
+        /// <summary>
+        /// 从游戏程序集全量字典 NelItem.getWholeDictionary() 采集所有物品（key + 中文名 + 分类 + 持有数），
+        /// 与地图列表一样每次请求实时重建，保证持有数准确
+        /// </summary>
+        public static ItemListDto GetItemList()
+        {
+            var list = new List<ItemEntryDto>();
+            try
+            {
+                var whole = NelItem.getWholeDictionary();
+                var inv = GetM2D()?.IMNG?.getInventory();
+
+                foreach (KeyValuePair<string, NelItem> pair in whole)
+                {
+                    var itm = pair.Value;
+                    if (itm == null) continue;
+
+                    try { if (itm.is_cache_item) continue; } catch { }
+
+                    string name = itm.key;
+                    try
+                    {
+                        string n = itm.getLocalizedName(0);
+                        if (string.IsNullOrWhiteSpace(n) || n == itm.key)
+                        {
+                            n = itm.fineNameLocalized();
+                        }
+                        if (!string.IsNullOrWhiteSpace(n)) name = n;
+                    }
+                    catch { }
+
+                    string cat = "OTHER";
+                    try { cat = itm.category.ToString(); } catch { }
+
+                    int owned = -1;
+                    try { if (inv != null) owned = inv.getCount(itm, -1); } catch { }
+
+                    list.Add(new ItemEntryDto
+                    {
+                        Key = itm.key,
+                        Name = name,
+                        Category = cat,
+                        CategoryZh = GetItemCategoryChineseName(cat),
+                        OwnedCount = owned
+                    });
+                }
+
+                list.Sort((a, b) =>
+                {
+                    int c = string.Compare(a.Category, b.Category, StringComparison.OrdinalIgnoreCase);
+                    if (c != 0) return c;
+                    bool aHas = !string.IsNullOrEmpty(a.Name);
+                    bool bHas = !string.IsNullOrEmpty(b.Name);
+                    if (aHas != bHas) return aHas ? -1 : 1;
+                    return string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase);
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] GetItemList error: " + ex.Message);
+            }
+            return new ItemListDto { Items = list };
+        }
+
+        public static void SendItemList()
+        {
+            try
+            {
+                var itemList = GetItemList();
+                if (itemList.Items.Count > 0)
+                {
+                    IpcServer.Instance.SendItemList(itemList);
+                    Debug.Log($"[AICMod] Sent {itemList.Items.Count} items to client");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] SendItemList failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 获取任意物品：调用游戏官方 debug 入包方法 NelItemManager.getItem
+        /// （官方 GET_ALL_ITEM 调试命令同款实现），而非自行操作 ItemStorage
+        /// </summary>
+        public static bool GiveItem(string itemKey, int count)
+        {
+            var nm2d = GetM2D();
+            if (nm2d == null || nm2d.IMNG == null || string.IsNullOrEmpty(itemKey) || count <= 0) return false;
+
+            try
+            {
+                var item = NelItem.GetById(itemKey, false);
+                if (item == null)
+                {
+                    Debug.LogWarning($"[AICMod] Unknown item key: {itemKey}");
+                    return false;
+                }
+
+                int added = InvokeOfficialGetItem(nm2d.IMNG, item, count);
+                Debug.Log($"[AICMod] Official NelItemManager.getItem added {added} x {itemKey}");
+                return added > 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[AICMod] GiveItem failed: {ex}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 反射调用官方 NelItemManager.getItem，多签名回退防止版本升级签名漂移导致 JIT 异常
+        /// </summary>
+        private static int InvokeOfficialGetItem(NelItemManager imng, NelItem item, int count)
+        {
+            var t = typeof(NelItemManager);
+            var m7 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool), typeof(bool), typeof(bool), typeof(bool) });
+            if (m7 != null) return (int)m7.Invoke(imng, new object[] { item, count, 0, false, false, false, false });
+            var m6 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool), typeof(bool), typeof(bool) });
+            if (m6 != null) return (int)m6.Invoke(imng, new object[] { item, count, 0, false, false, false });
+            var m5 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool), typeof(bool) });
+            if (m5 != null) return (int)m5.Invoke(imng, new object[] { item, count, 0, false, false });
+            var m4 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool) });
+            if (m4 != null) return (int)m4.Invoke(imng, new object[] { item, count, 0, false });
+            var m3 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int) });
+            if (m3 != null) return (int)m3.Invoke(imng, new object[] { item, count, 0 });
+            var m2 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int) });
+            if (m2 != null) return (int)m2.Invoke(imng, new object[] { item, count });
+            var m1 = t.GetMethod("getItem", new[] { typeof(NelItem) });
+            if (m1 != null) return (int)m1.Invoke(imng, new object[] { item });
+            throw new MissingMethodException("NelItemManager.getItem not found");
         }
 
         #endregion
