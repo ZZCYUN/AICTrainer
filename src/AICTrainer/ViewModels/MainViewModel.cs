@@ -526,6 +526,7 @@ namespace AICTrainer.ViewModels
                         if (IsDojoAlwaysWin) active++;
                         if (IsBestReelRewardEnabled) active++;
                         if (IsAllowBattleBackpack) active++;
+                        if (IsAllowBattleWarehouse) active++;
                         if (IsGoldLocked) active++;
                         if (IsCraftsLocked) active++;
                         if (IsJuiceLocked) active++;
@@ -593,6 +594,7 @@ namespace AICTrainer.ViewModels
                         if (IsDojoAlwaysWin) active++;
                         if (IsBestReelRewardEnabled) active++;
                         if (IsAllowBattleBackpack) active++;
+                        if (IsAllowBattleWarehouse) active++;
                         return $"已激活 {active} / {total} 项";
                     case 8: // 资产与货币
                         total = 6;
@@ -711,7 +713,7 @@ namespace AICTrainer.ViewModels
                 "Vis_OneHitKill", "Vis_ShieldBreak", "Vis_InstantMagicCharge", "Vis_NoBurstTired", "Vis_JustGuardNoHit", "Vis_ExtendedJustGuard", "Vis_DisableHitCheck", "Vis_ShowHitboxes", "Vis_NoelAttackScale", "Vis_DamageMultiplier",
                 "Vis_Worm", "Vis_Spike", "Vis_Thunder", "Vis_Drown", "Vis_Acid",
                 "Vis_FastTravelAnytime", "Vis_FastTravelAnywhere", "Vis_Danger", "Vis_HungryBonus",
-                "Vis_SaveAnywhere", "Vis_Countdown", "Vis_Slot", "Vis_BreakFood", "Vis_Mosaic", "Vis_DojoAlwaysWin", "Vis_BestReelReward", "Vis_BattleBackpack",
+                "Vis_SaveAnywhere", "Vis_Countdown", "Vis_Slot", "Vis_BreakFood", "Vis_Mosaic", "Vis_DojoAlwaysWin", "Vis_BestReelReward", "Vis_BattleBackpack", "Vis_BattleWarehouse",
                 "Vis_Gold", "Vis_Crafts", "Vis_Juice", "Vis_BarScore", "Vis_GuildPoints", "Vis_Lanthanum"
             };
             foreach (var p in cardProps) OnPropertyChanged(p);
@@ -770,6 +772,7 @@ namespace AICTrainer.ViewModels
         public Visibility Vis_DojoAlwaysWin => CardVis("Utility", "DojoAlwaysWin");
         public Visibility Vis_BestReelReward => CardVis("Utility", "BestReelReward");
         public Visibility Vis_BattleBackpack => CardVis("Utility", "BattleBackpack");
+        public Visibility Vis_BattleWarehouse => CardVis("Utility", "BattleWarehouse");
 
         // 资产与货币类
         public Visibility Vis_Gold => CardVis("Currencies", "Gold");
@@ -1070,6 +1073,14 @@ namespace AICTrainer.ViewModels
         public string StarTextColor_BattleBackpack => StarTextColor("BattleBackpack");
         public string StarBg_BattleBackpack => StarBg("BattleBackpack");
         public string StarBorder_BattleBackpack => StarBorder("BattleBackpack");
+
+        public bool IsFav_BattleWarehouse => IsFav("BattleWarehouse");
+        public string StarChar_BattleWarehouse => StarChar("BattleWarehouse");
+        public string StarText_BattleWarehouse => StarText("BattleWarehouse");
+        public string StarColor_BattleWarehouse => StarColor("BattleWarehouse");
+        public string StarTextColor_BattleWarehouse => StarTextColor("BattleWarehouse");
+        public string StarBg_BattleWarehouse => StarBg("BattleWarehouse");
+        public string StarBorder_BattleWarehouse => StarBorder("BattleWarehouse");
 
         public bool IsFav_Gold => IsFav("Gold");
         public string StarChar_Gold => StarChar("Gold");
@@ -1498,6 +1509,7 @@ namespace AICTrainer.ViewModels
         public bool IsInfiniteJump { get => Config.InfiniteJump; set { Config.InfiniteJump = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsImmuneAbnormalStatus { get => Config.ImmuneAbnormalStatus; set { Config.ImmuneAbnormalStatus = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsAllowBattleBackpack { get => Config.AllowBattleBackpack; set { Config.AllowBattleBackpack = value; OnPropertyChanged(); PushConfig(); } }
+        public bool IsAllowBattleWarehouse { get => Config.AllowBattleWarehouse; set { Config.AllowBattleWarehouse = value; OnPropertyChanged(); PushConfig(); } }
 
         public bool IsNoWormTrap { get => Config.NoWormTrap; set { Config.NoWormTrap = value; OnPropertyChanged(); PushConfig(); } }
         public bool IsNoSpikeDamage { get => Config.NoSpikeDamage; set { Config.NoSpikeDamage = value; OnPropertyChanged(); PushConfig(); } }

@@ -2713,6 +2713,51 @@
                             </Grid>
                         </Grid>
                     </Border>
+                    <!-- 战斗仓库访问 -->
+                    <Border Visibility="{Binding Vis_BattleWarehouse}" Style="{StaticResource FeatureCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- 左侧表情图标 -->
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" BorderBrush="#383852" BorderThickness="1" Background="#141420" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Border.Clip>
+                                    <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,40,40"/>
+                                </Border.Clip>
+                                <Image Source="{h:Sticker 2_4}" Stretch="UniformToFill"/>
+                            </Border>
+                            <!-- 右侧主体内容 -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="战斗仓库访问" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="13"/>
+                                        <Border Margin="8,0,0,0" Background="#1E293B" CornerRadius="6" Padding="6,1">
+                                            <TextBlock Text="仓库可用" Foreground="#38BDF8" FontSize="11"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Style="{StaticResource StarButton}" Command="{Binding ToggleFavCommand}" CommandParameter="BattleWarehouse" Background="{Binding StarBg_BattleWarehouse}" BorderBrush="{Binding StarBorder_BattleWarehouse}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StarChar_BattleWarehouse}" Foreground="{Binding StarColor_BattleWarehouse}" FontSize="15" FontWeight="Bold" Margin="0,-2,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding StarText_BattleWarehouse}" Foreground="{Binding StarTextColor_BattleWarehouse}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="允许在战斗地图/非安全区域打开屋内仓库（物品箱仓库标签解锁）" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" Content="仓库开启" IsChecked="{Binding IsAllowBattleWarehouse}"/>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
                         </UniformGrid>
                     </StackPanel>
 
