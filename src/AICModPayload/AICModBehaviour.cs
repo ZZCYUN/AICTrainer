@@ -1125,13 +1125,22 @@ namespace AICMod
 
             try
             {
-                // 使用游戏原生的事件堆栈执行传送流程 (与长椅/地图传送流程完全一致)
-                // 1. 关闭菜单 2. 异步加载地图素材 3. 等待加载完成 4. 执行快速传送 (传递 safeX, safeY, delay=0 消除自动位移卡墙)
+                // 使用游戏原生的事件堆栈执行跨区域/同区域完整传送流程 (与游戏快速旅行一致)
+                // 1. 关闭UI菜单与信箱模式
+                // 2. 预卸载当前地图实体事件 (PRE_UNLOAD)
+                // 3. 准备新地图BGM
+                // 4. 设置材质刷新标记 (ADD_MAPFLUSH_FLAG + INIT_MAP_MATERIAL 3)，触发 M2ImageAtlas 与地图切片重构，彻底解决跨区域材质撕裂错乱
+                // 5. 等待素材异步加载完毕 (WAIT_FN MAP_TRANSFER)
+                // 6. 执行快速传送，落地后由 Harmony Postfix 立即清除多余移动脚本，精准降落在安全地面
                 var evReader = new evt.EvReader("%TRAINER_WARP");
                 STB sTB = TX.PopBld();
                 sTB += "UIGM DEACTIVATE\n";
                 sTB += "DENY_SKIP\n";
-                sTB += "INIT_MAP_MATERIAL " + mapKey + " 1\n";
+                sTB += "STOP_LETTERBOX\n";
+                sTB += "SEND_EVENT_CORRUPTION PRE_UNLOAD\n";
+                sTB += "INIT_MAP_BGM " + mapKey + "\n";
+                sTB += "ADD_MAPFLUSH_FLAG\n";
+                sTB += "INIT_MAP_MATERIAL " + mapKey + " 3\n";
                 sTB += "WAIT 20\n";
                 sTB += "WAIT_FN MAP_TRANSFER\n";
                 sTB += "NEL_EXECUTE_FAST_TRAVEL '" + mapKey + "' " + safeX + " " + safeY + " 0\n";
@@ -1141,7 +1150,7 @@ namespace AICMod
                 evReader.parseText(sTB);
                 TX.ReleaseBld(sTB);
                 evt.EV.stackReader(evReader);
-                Debug.Log($"[AICMod] Queued native EV fast travel to {mapKey} at safe pos ({safeX}, {safeY})");
+                Debug.Log($"[AICMod] Queued native EV fast travel to {mapKey} at safe pos ({safeX}, {safeY}) with atlas flush");
                 return true;
             }
             catch (Exception ex)
@@ -1149,7 +1158,10 @@ namespace AICMod
                 Debug.LogWarning($"[AICMod] EV.stackReader failed: {ex}, trying fallback to direct executeTransferFastTravel");
                 try
                 {
-                    nm2d.initMapMaterialASync(targetMap, 1, false);
+                    nm2d.setFlushOtherMatFlag();
+                    nm2d.setFlushMapFlag();
+                    nm2d.setFlushAllFlag(false);
+                    nm2d.initMapMaterialASync(targetMap, 3, false);
                     M2LpMapTransferBase.executeTransferFastTravel(targetMap, safeX, safeY, 0);
                     var pr = GetPlayer();
                     if (pr != null)
@@ -1166,6 +1178,9 @@ namespace AICMod
                     Debug.LogError($"[AICMod] Direct fast travel fallback failed: {ex2}, trying changeMap");
                     try
                     {
+                        nm2d.setFlushOtherMatFlag();
+                        nm2d.setFlushMapFlag();
+                        nm2d.setFlushAllFlag(false);
                         nm2d.changeMap(targetMap);
                         var pr = GetPlayer();
                         if (pr != null)

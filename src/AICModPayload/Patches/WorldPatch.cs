@@ -246,5 +246,49 @@ namespace AICMod.Patches
                 Traverse.Create(__instance).Field("t_count").SetValue(0f);
             }
         }
+
+        // 7. 抑制未知大地图区域异常（防止进入 mine、labo、debug 等特殊地图时抛出不明なWARecord导致调试器异常中断）
+        [HarmonyPatch(typeof(WAManager), "GetWa", new[] { typeof(string), typeof(bool) })]
+        [HarmonyPrefix]
+        public static void Prefix_WAManager_GetWa(ref bool no_error)
+        {
+            no_error = true;
+        }
+
+        // 8. 修复无 WholeMap 图层地图的元数据检查（防止进入无全景图层元数据的地图时抛出 WM レイヤーを指定しない場合 异常）
+        [HarmonyPatch(typeof(WholeMapItem), "initS", new[] { typeof(Map2d), typeof(WholeMapItem.WMRegex) })]
+        [HarmonyPrefix]
+        public static bool Prefix_WholeMapItem_initS(WholeMapItem __instance, Map2d Mp, WholeMapItem.WMRegex MatchWr)
+        {
+            if (Mp == null) return true;
+            if (__instance.GetWmi(Mp) == null)
+            {
+                string? s = Mp.Meta != null ? Mp.Meta.GetS("wholemap_pos") : null;
+                if (TX.noe(s))
+                {
+                    __instance.CurMap = Mp;
+                    __instance.CurPosition = default;
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // 9. 传送后清除多余的移动脚本（防止自动走入墙壁或触发“移動先が通行できないため”错误）
+        [HarmonyPatch(typeof(M2LpMapTransferBase), "executeTransferFastTravel", new[] { typeof(Map2d), typeof(int), typeof(int), typeof(int) })]
+        [HarmonyPostfix]
+        public static void Postfix_executeTransferFastTravel(Map2d DepMp)
+        {
+            try
+            {
+                var keyPr = DepMp?.getKeyPr();
+                if (keyPr != null)
+                {
+                    keyPr.quitMoveScript();
+                    keyPr.getPhysic()?.killSpeedForce();
+                }
+            }
+            catch { }
+        }
     }
 }
