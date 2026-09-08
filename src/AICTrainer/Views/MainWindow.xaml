@@ -232,6 +232,7 @@
             </Setter>
         </Style>
 
+
         <!-- 收藏星标按钮 (精致圆角胶囊样式) -->
         <Style x:Key="StarButton" TargetType="Button">
             <Setter Property="Height" Value="24"/>
@@ -666,7 +667,13 @@
                                 <Button Content="🎮 启动游戏" Style="{StaticResource LaunchButton}" Margin="0,0,8,0"
                                         Visibility="{Binding LaunchGameButtonVis}"
                                         Command="{Binding LaunchGameCommand}"/>
-                                <Button Content="⚡ 注入 / 连接" Style="{StaticResource NeonButton}" Click="OnInjectClick"/>
+                                <Button Content="⚡ 注入 / 连接" Style="{StaticResource NeonButton}"
+                                        Visibility="{Binding InjectButtonVis}"
+                                        Click="OnInjectClick"/>
+                                <Button Content="🗺️ 更换地图" Style="{StaticResource NeonButton}"
+                                        Visibility="{Binding ChangeMapButtonVis}"
+                                        Command="{Binding OpenMapSelectCommand}"
+                                        ToolTip="选择并安全传送至游戏任意关卡地图"/>
                             </StackPanel>
                         </Grid>
                     </Border>

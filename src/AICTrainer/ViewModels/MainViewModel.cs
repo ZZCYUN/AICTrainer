@@ -20,6 +20,7 @@ namespace AICTrainer.ViewModels
 
         private bool _isGameRunning;
         private bool _isInjected;
+        private bool _isGameReady;
         private string _statusText = "未检测到游戏运行";
         private string _statusColor = "#FF5555"; // 红色
 
@@ -124,6 +125,7 @@ namespace AICTrainer.ViewModels
             // 命令初始化
             LaunchGameCommand = new RelayCommand(async () => await LaunchGameAsync());
             InjectCommand = new RelayCommand(async () => await InjectAndConnectAsync());
+            OpenMapSelectCommand = new RelayCommand(OpenMapSelectDialog);
             ToggleFavCommand = new RelayCommand<string>(key => ToggleFavorite(key));
 
             // 单次更改数值动作命令
@@ -211,6 +213,15 @@ namespace AICTrainer.ViewModels
                     StatusText = "已注入并连接游戏 (实时数据同步生效)";
                     StatusColor = "#00FF66";
                     PushConfig();
+                    Client.RequestMapList();
+                });
+            };
+
+            Client.OnMapListReceived += maps =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    AllMaps = maps ?? new List<MapEntryDto>();
                 });
             };
 
@@ -219,6 +230,7 @@ namespace AICTrainer.ViewModels
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     IsInjected = false;
+                    IsGameReady = false;
                     if (IsGameRunning)
                     {
                         StatusText = "连接已断开 (可点击【⚡ 注入 / 连接】重新连接)";
@@ -240,6 +252,7 @@ namespace AICTrainer.ViewModels
                         PatchHealthText = $"{state.ActivePatchCount}/{state.TotalPatchCount} 补丁生效";
                     }
 
+                    IsGameReady = state.IsGameReady;
                     if (state.IsGameReady)
                     {
                         _rawHp = state.Hp; _rawMaxHp = state.MaxHp;
@@ -298,10 +311,43 @@ namespace AICTrainer.ViewModels
             }
         }
         public Visibility LaunchGameButtonVis => IsGameRunning ? Visibility.Collapsed : Visibility.Visible;
-        public bool IsInjected { get => _isInjected; set { _isInjected = value; OnPropertyChanged(); } }
+        public Visibility InjectButtonVis => IsInjected ? Visibility.Collapsed : Visibility.Visible;
+        public bool IsInjected
+        {
+            get => _isInjected;
+            set
+            {
+                _isInjected = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(InjectButtonVis));
+                OnPropertyChanged(nameof(ChangeMapButtonVis));
+            }
+        }
+        public bool IsGameReady
+        {
+            get => _isGameReady;
+            set
+            {
+                _isGameReady = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ChangeMapButtonVis));
+            }
+        }
+        public Visibility ChangeMapButtonVis => IsInjected ? Visibility.Visible : Visibility.Collapsed;
+
         public string StatusText { get => _statusText; set { _statusText = value; OnPropertyChanged(); } }
         public string StatusColor { get => _statusColor; set { _statusColor = value; OnPropertyChanged(); } }
-        public string CurrentMapText { get => _currentMapText; set { _currentMapText = value; OnPropertyChanged(); } }
+        public string CurrentMapText
+        {
+            get => _currentMapText;
+            set
+            {
+                _currentMapText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ChangeMapButtonVis));
+            }
+        }
+        public List<MapEntryDto> AllMaps { get; private set; } = new List<MapEntryDto>();
 
         public string CurrentHpText { get => _currentHpText; set { _currentHpText = value; OnPropertyChanged(); } }
         public string CurrentMpText { get => _currentMpText; set { _currentMpText = value; OnPropertyChanged(); } }
@@ -1417,6 +1463,7 @@ namespace AICTrainer.ViewModels
         // ======================= 命令接口 =======================
         public ICommand LaunchGameCommand { get; }
         public ICommand InjectCommand { get; }
+        public ICommand OpenMapSelectCommand { get; }
         public ICommand ToggleFavCommand { get; }
 
         public ICommand ApplyHpCommand { get; }
@@ -1624,6 +1671,32 @@ namespace AICTrainer.ViewModels
             }
 
             return false;
+        }
+
+        public void OpenMapSelectDialog()
+        {
+            if (!IsGameReady || string.IsNullOrEmpty(CurrentMapText) || CurrentMapText == "未在游戏中" || CurrentMapText == "标题画面 / 菜单" || CurrentMapText == "关卡载入中")
+            {
+                MessageBox.Show("请先载入游戏存档并进入关卡地图后再更换地图！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (AllMaps == null || AllMaps.Count == 0)
+            {
+                Client.RequestMapList();
+            }
+
+            var dlg = new AICTrainer.Views.MapSelectDialog(this)
+            {
+                Owner = Application.Current.MainWindow
+            };
+            dlg.ShowDialog();
+        }
+
+        public void ExecuteChangeMap(string mapKey)
+        {
+            if (string.IsNullOrEmpty(mapKey)) return;
+            Client.ChangeMap(mapKey);
         }
 
         public void PushConfig()
