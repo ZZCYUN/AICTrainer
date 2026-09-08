@@ -39,7 +39,14 @@ namespace AICMod
                 // 1. 在主线程中安全处理 IPC 远程指令
                 while (IncomingActions.TryDequeue(out var act))
                 {
-                    HandleAction(act);
+                    try
+                    {
+                        HandleAction(act);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"[AICMod] HandleAction '{act.ActionName}' error: {ex}");
+                    }
                 }
 
                 // 2. 状态锁定与自适应修改
@@ -49,12 +56,12 @@ namespace AICMod
 
                 if (pr != null)
                 {
-                    ApplyPlayerLocks(pr, cfg);
+                    try { ApplyPlayerLocks(pr, cfg); } catch (Exception ex) { Debug.LogWarning("[AICMod] ApplyPlayerLocks error: " + ex.Message); }
                 }
 
                 if (nm2d != null)
                 {
-                    ApplyWorldLocks(nm2d, cfg);
+                    try { ApplyWorldLocks(nm2d, cfg); } catch (Exception ex) { Debug.LogWarning("[AICMod] ApplyWorldLocks error: " + ex.Message); }
                 }
 
                 // 3. 定时同步游戏数据到客户端
@@ -391,11 +398,11 @@ namespace AICMod
                         int diff = target - cur;
                         if (diff > 0)
                         {
-                            inv.Add(NelItem.Lanthanum, diff, 0, true, true);
+                            SafeAddItem(inv, NelItem.Lanthanum, diff, 0);
                         }
                         else if (diff < 0)
                         {
-                            inv.Reduce(NelItem.Lanthanum, -diff, -1, true);
+                            SafeReduceItem(inv, NelItem.Lanthanum, -diff, -1);
                         }
                     }
                 }
@@ -719,11 +726,11 @@ namespace AICMod
                                 int diff = target - cur;
                                 if (diff > 0)
                                 {
-                                    inv.Add(NelItem.Lanthanum, diff, 0, true, true);
+                                    SafeAddItem(inv, NelItem.Lanthanum, diff, 0);
                                 }
                                 else if (diff < 0)
                                 {
-                                    inv.Reduce(NelItem.Lanthanum, -diff, -1, true);
+                                    SafeReduceItem(inv, NelItem.Lanthanum, -diff, -1);
                                 }
                             }
                         }
@@ -778,6 +785,52 @@ namespace AICMod
                 }
                 UIStatus.Instance.draw_crack = true;
                 UIStatus.Instance.fineMpRatio(true, false);
+            }
+        }
+
+        private static void SafeAddItem(ItemStorage inv, NelItem item, int count, int grade = 0)
+        {
+            try
+            {
+                var method5 = typeof(ItemStorage).GetMethod("Add", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool), typeof(bool) });
+                if (method5 != null)
+                {
+                    method5.Invoke(inv, new object[] { item, count, grade, true, true });
+                    return;
+                }
+                var method4 = typeof(ItemStorage).GetMethod("Add", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool) });
+                if (method4 != null)
+                {
+                    method4.Invoke(inv, new object[] { item, count, grade, true });
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] SafeAddItem error: " + ex.Message);
+            }
+        }
+
+        private static void SafeReduceItem(ItemStorage inv, NelItem item, int count, int grade = -1)
+        {
+            try
+            {
+                var method5 = typeof(ItemStorage).GetMethod("Reduce", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool), typeof(bool) });
+                if (method5 != null)
+                {
+                    method5.Invoke(inv, new object[] { item, count, grade, true, false });
+                    return;
+                }
+                var method4 = typeof(ItemStorage).GetMethod("Reduce", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool) });
+                if (method4 != null)
+                {
+                    method4.Invoke(inv, new object[] { item, count, grade, true });
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] SafeReduceItem error: " + ex.Message);
             }
         }
 

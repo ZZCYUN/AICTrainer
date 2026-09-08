@@ -299,23 +299,21 @@ namespace AICMod.Patches
             try
             {
                 var nm2d = M2DBase.Instance as NelM2DBase;
-                var curMap = nm2d?.curMap;
-                if (curMap != null && TX.isStart(jump_key, "!"))
+                var targetMap = SrcMp ?? nm2d?.curMap;
+                if (targetMap != null && TX.isStart(jump_key, "!"))
                 {
                     string label = TX.slice(jump_key, 1);
-                    if (curMap.getLabelPoint(label) == null)
+                    if (targetMap.getLabelPoint(label) == null)
                     {
-                        if (curMap.getLabelPoint("WarpTo") != null)
+                        var lp = targetMap.getLabelPoint("WarpTo")
+                              ?? targetMap.getLabelPoint("Bench")
+                              ?? targetMap.getLabelPoint("bench")
+                              ?? targetMap.getLabelPoint("Start")
+                              ?? targetMap.getLabelPoint("start")
+                              ?? targetMap.getLabelPoint((M2LabelPoint p) => p is M2LpMapTransferWarp || p is M2LpWarpConnection || p.key.IndexOf("bench", StringComparison.OrdinalIgnoreCase) >= 0 || p.key.IndexOf("warp", StringComparison.OrdinalIgnoreCase) >= 0);
+                        if (lp != null)
                         {
-                            jump_key = "!WarpTo";
-                        }
-                        else if (curMap.getLabelPoint("Bench") != null || curMap.getLabelPoint("bench") != null)
-                        {
-                            jump_key = "!Bench";
-                        }
-                        else if (curMap.getLabelPoint("Start") != null)
-                        {
-                            jump_key = "!Start";
+                            jump_key = "!" + lp.key;
                         }
                         else
                         {
