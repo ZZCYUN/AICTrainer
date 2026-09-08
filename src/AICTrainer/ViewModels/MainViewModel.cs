@@ -126,6 +126,7 @@ namespace AICTrainer.ViewModels
             LaunchGameCommand = new RelayCommand(async () => await LaunchGameAsync());
             InjectCommand = new RelayCommand(async () => await InjectAndConnectAsync());
             OpenMapSelectCommand = new RelayCommand(OpenMapSelectDialog);
+            OpenItemGetCommand = new RelayCommand(OpenItemGetDialog);
             ToggleFavCommand = new RelayCommand<string>(key => ToggleFavorite(key));
 
             // 单次更改数值动作命令
@@ -222,6 +223,14 @@ namespace AICTrainer.ViewModels
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     AllMaps = maps ?? new List<MapEntryDto>();
+                });
+            };
+
+            Client.OnItemListReceived += items =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    AllItems = items ?? new List<ItemEntryDto>();
                 });
             };
 
@@ -322,6 +331,7 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged(nameof(InjectButtonVis));
                 OnPropertyChanged(nameof(IsInMap));
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
+                OnPropertyChanged(nameof(ItemGetButtonVis));
             }
         }
         public bool IsGameReady
@@ -333,6 +343,7 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsInMap));
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
+                OnPropertyChanged(nameof(ItemGetButtonVis));
             }
         }
 
@@ -342,6 +353,7 @@ namespace AICTrainer.ViewModels
                                CurrentMapText != "关卡载入中";
 
         public Visibility ChangeMapButtonVis => IsInMap ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility ItemGetButtonVis => IsInMap ? Visibility.Visible : Visibility.Collapsed;
 
         public string StatusText { get => _statusText; set { _statusText = value; OnPropertyChanged(); } }
         public string StatusColor { get => _statusColor; set { _statusColor = value; OnPropertyChanged(); } }
@@ -354,9 +366,11 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsInMap));
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
+                OnPropertyChanged(nameof(ItemGetButtonVis));
             }
         }
         public List<MapEntryDto> AllMaps { get; private set; } = new List<MapEntryDto>();
+        public List<ItemEntryDto> AllItems { get; private set; } = new List<ItemEntryDto>();
 
         public string CurrentHpText { get => _currentHpText; set { _currentHpText = value; OnPropertyChanged(); } }
         public string CurrentMpText { get => _currentMpText; set { _currentMpText = value; OnPropertyChanged(); } }
@@ -1473,6 +1487,7 @@ namespace AICTrainer.ViewModels
         public ICommand LaunchGameCommand { get; }
         public ICommand InjectCommand { get; }
         public ICommand OpenMapSelectCommand { get; }
+        public ICommand OpenItemGetCommand { get; }
         public ICommand ToggleFavCommand { get; }
 
         public ICommand ApplyHpCommand { get; }
@@ -1707,6 +1722,111 @@ namespace AICTrainer.ViewModels
         {
             if (string.IsNullOrEmpty(mapKey)) return;
             Client.ChangeMap(mapKey);
+        }
+
+        public void OpenItemGetDialog()
+        {
+            if (!IsGameReady || string.IsNullOrEmpty(CurrentMapText) || CurrentMapText == "未在游戏中" || CurrentMapText == "标题画面 / 菜单" || CurrentMapText == "关卡载入中")
+            {
+                MessageBox.Show("请先载入游戏存档并进入关卡地图后再获取物品！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (AllItems == null || AllItems.Count == 0)
+            {
+                Client.RequestItemList();
+                FallbackLoadGameItems();
+            }
+
+            var dlg = new AICTrainer.Views.ItemGetDialog(this)
+            {
+                Owner = Application.Current.MainWindow
+            };
+            dlg.ShowDialog();
+        }
+
+        public void ExecuteAddItem(string itemKey, int count)
+        {
+            if (string.IsNullOrEmpty(itemKey) || count <= 0) return;
+            Client.AddItem(itemKey, count);
+        }
+
+        /// <summary>
+        /// 物品列表的离线兜底：扫描本地化文件中的 %ITEM key 名称 行。
+        /// 仅当 IPC 物品列表尚未到达时使用；完整列表始终以 MOD 端程序集反射结果为准。
+        /// </summary>
+        public List<ItemEntryDto> FallbackLoadGameItems()
+        {
+            if (AllItems != null && AllItems.Count > 0) return AllItems;
+
+            try
+            {
+                string? streamingAssetsPath = null;
+                var procs = System.Diagnostics.Process.GetProcessesByName("AliceInCradle");
+                if (procs.Length > 0)
+                {
+                    try
+                    {
+                        string? exeDir = Path.GetDirectoryName(procs[0].MainModule?.FileName);
+                        if (!string.IsNullOrEmpty(exeDir))
+                        {
+                            string p = Path.Combine(exeDir, "AliceInCradle_Data", "StreamingAssets");
+                            if (Directory.Exists(p)) streamingAssetsPath = p;
+                        }
+                    }
+                    catch { }
+                }
+
+                if (string.IsNullOrEmpty(streamingAssetsPath) || !Directory.Exists(streamingAssetsPath))
+                {
+                    string defaultP = @"C:\AliceInCradle\AliceInCradle_Data\StreamingAssets";
+                    if (Directory.Exists(defaultP)) streamingAssetsPath = defaultP;
+                }
+
+                if (string.IsNullOrEmpty(streamingAssetsPath) || !Directory.Exists(streamingAssetsPath))
+                {
+                    return AllItems ?? new List<ItemEntryDto>();
+                }
+
+                var items = new List<ItemEntryDto>();
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                string zhDir = Path.Combine(streamingAssetsPath, "localization", "zh-cn");
+                if (Directory.Exists(zhDir))
+                {
+                    foreach (var file in Directory.GetFiles(zhDir, "*.txt"))
+                    {
+                        if (!File.Exists(file)) continue;
+                        foreach (var line in File.ReadAllLines(file, System.Text.Encoding.UTF8))
+                        {
+                            string trimmed = line.Trim();
+                            if (!trimmed.StartsWith("%ITEM ")) continue;
+                            // 格式: %ITEM <key> <名称> [描述...]
+                            var parts = trimmed.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length < 3) continue;
+                            string key = parts[1];
+                            if (!seen.Add(key)) continue;
+                            items.Add(new ItemEntryDto
+                            {
+                                Key = key,
+                                Name = parts[2],
+                                Category = "",
+                                CategoryZh = "其他",
+                                OwnedCount = -1
+                            });
+                        }
+                    }
+                }
+
+                items.Sort((a, b) => string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase));
+                if (items.Count > 0) AllItems = items;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[MainViewModel] FallbackLoadGameItems failed: " + ex.Message);
+            }
+
+            return AllItems ?? new List<ItemEntryDto>();
         }
 
         public List<MapEntryDto> FallbackLoadGameMaps()

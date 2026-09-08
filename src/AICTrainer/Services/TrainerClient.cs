@@ -28,6 +28,7 @@ namespace AICTrainer.Services
 
         public event Action<GameStateDto>? OnStateReceived;
         public event Action<System.Collections.Generic.List<MapEntryDto>>? OnMapListReceived;
+        public event Action<System.Collections.Generic.List<ItemEntryDto>>? OnItemListReceived;
         public event Action? OnConnected;
         public event Action? OnDisconnected;
 
@@ -158,6 +159,16 @@ namespace AICTrainer.Services
             SendAction("ChangeMap", stringParam: mapKey);
         }
 
+        public void RequestItemList()
+        {
+            SendAction("GetItemList");
+        }
+
+        public void AddItem(string itemKey, int count)
+        {
+            SendAction("AddItem", intParam: count, stringParam: itemKey);
+        }
+
         private void ListenLoop(NetworkStream stream, CancellationToken token)
         {
             try
@@ -186,6 +197,14 @@ namespace AICTrainer.Services
                                 if (mapList != null && mapList.Maps != null)
                                 {
                                     OnMapListReceived?.Invoke(mapList.Maps);
+                                }
+                            }
+                            else if (msg != null && msg.Type == "ItemList")
+                            {
+                                var itemList = JsonSerializer.Deserialize<ItemListDto>(msg.JsonData, JsonOptions);
+                                if (itemList != null && itemList.Items != null)
+                                {
+                                    OnItemListReceived?.Invoke(itemList.Items);
                                 }
                             }
                         }
