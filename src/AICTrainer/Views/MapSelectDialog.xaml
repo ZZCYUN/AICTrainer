@@ -230,8 +230,8 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="💡 提示: 双击列表项或点击「传送」，游戏将平滑加载目标地图并传送至安全着陆点"
-                           FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="0" Text="💡 双击列表项或点「传送」即可切换地图"
+                           FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" TextWrapping="Wrap"/>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button Content="🔄 刷新" Width="70" Height="30" Background="#1E1E2E" Foreground="{StaticResource TextSecondary}" BorderBrush="#383854" BorderThickness="1" Cursor="Hand" Click="OnRefreshMapsClick" Margin="0,0,8,0">
                         <Button.Resources>
