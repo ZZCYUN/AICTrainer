@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
+using System.Text.RegularExpressions;
 using AICShared;
 using m2d;
 using nel;
@@ -435,6 +437,12 @@ namespace AICMod
                         state.IsGameReady = true;
                         state.CurrentMap = nm2d.curMap.key ?? "";
 
+                        if (!_hasSentMapList)
+                        {
+                            _hasSentMapList = true;
+                            SendMapList();
+                        }
+
                         state.Hp = (int)pr.get_hp();
                         state.MaxHp = (int)pr.get_maxhp();
                         state.Mp = (int)pr.get_mp();
@@ -524,6 +532,17 @@ namespace AICMod
             {
                 switch (act.ActionName)
                 {
+                    case "GetMapList":
+                        SendMapList();
+                        break;
+
+                    case "ChangeMap":
+                        if (!string.IsNullOrEmpty(act.StringParam))
+                        {
+                            TransferToMap(act.StringParam);
+                        }
+                        break;
+
                     case "full_heal":
                         if (pr != null)
                         {
@@ -780,6 +799,248 @@ namespace AICMod
                 }
             }
         }
+
+        #region Map List & Transfer System
+
+        private static MapListDto? _cachedMapListDto;
+        private static Dictionary<string, string>? _cachedZhNames;
+        private static bool _hasSentMapList;
+
+        public static Dictionary<string, string> LoadChineseMapNames()
+        {
+            if (_cachedZhNames != null) return _cachedZhNames;
+            _cachedZhNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                string path = Path.Combine(Application.streamingAssetsPath, "localization", "zh-cn", "zh-cn_tx_map_name.txt");
+                if (File.Exists(path))
+                {
+                    foreach (var line in File.ReadAllLines(path, System.Text.Encoding.UTF8))
+                    {
+                        string trimmed = line.Trim();
+                        if (trimmed.StartsWith("&&MAP_"))
+                        {
+                            var match = Regex.Match(trimmed, @"^&&MAP_(\w+)\s+(.+)$");
+                            if (match.Success)
+                            {
+                                _cachedZhNames[match.Groups[1].Value] = match.Groups[2].Value.Trim();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] Failed to load zh-cn map names: " + ex.Message);
+            }
+            return _cachedZhNames;
+        }
+
+        public static string GetAreaChineseName(string areaKey)
+        {
+            switch (areaKey.ToLowerInvariant())
+            {
+                case "house": return "魔女之家";
+                case "forest": return "纺织之森";
+                case "city": return "恩惠小镇";
+                case "school": return "贝尔米特学院";
+                case "mount": return "陨落山脉";
+                case "glacier": return "冰川";
+                case "sea": return "海洋";
+                case "sacred": return "圣母石";
+                case "labo": return "地下研究所";
+                case "mine": return "矿区";
+                case "debug": return "调试地图";
+                default: return areaKey;
+            }
+        }
+
+        public static MapListDto GetOrCreateMapList()
+        {
+            if (_cachedMapListDto != null && _cachedMapListDto.Maps.Count > 0)
+            {
+                return _cachedMapListDto;
+            }
+
+            var allKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 1. 从 StreamingAssets/m2d/__m2d_list.dat 读取全量游戏地图
+            try
+            {
+                string listDatPath = Path.Combine(Application.streamingAssetsPath, "m2d", "__m2d_list.dat");
+                if (File.Exists(listDatPath))
+                {
+                    foreach (var rawLine in File.ReadAllLines(listDatPath))
+                    {
+                        string k = rawLine.Trim();
+                        if (string.IsNullOrEmpty(k) || k.StartsWith("_")) continue;
+                        allKeys.Add(k);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] Failed to read __m2d_list.dat: " + ex.Message);
+            }
+
+            // 2. 结合运行时 M2D 容器中的地图
+            var nm2d = GetM2D();
+            if (nm2d != null)
+            {
+                try
+                {
+                    var mapObj = nm2d.getMapObject();
+                    if (mapObj != null)
+                    {
+                        foreach (var pair in mapObj)
+                        {
+                            string key = pair.Key;
+                            Map2d map = pair.Value;
+                            if (string.IsNullOrEmpty(key) || key.StartsWith("_") || (map != null && (map.is_submap || map.is_whole)))
+                            {
+                                continue;
+                            }
+                            allKeys.Add(key);
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            if (allKeys.Count == 0) return new MapListDto();
+
+            var zhMapNames = LoadChineseMapNames();
+            var list = new List<MapEntryDto>();
+
+            foreach (var key in allKeys)
+            {
+                string areaKey = key.Contains('_') ? key.Substring(0, key.IndexOf('_')) : key;
+                string areaName = GetAreaChineseName(areaKey);
+
+                string mapName = string.Empty;
+                if (zhMapNames.TryGetValue(key, out string? zhName) && !string.IsNullOrEmpty(zhName))
+                {
+                    mapName = zhName;
+                }
+                else
+                {
+                    try
+                    {
+                        mapName = TX.Get("MAP_" + key, "");
+                    }
+                    catch { }
+                }
+
+                list.Add(new MapEntryDto
+                {
+                    Key = key,
+                    Name = mapName,
+                    AreaKey = areaKey,
+                    AreaName = areaName
+                });
+            }
+
+            // 优先排序：大区域排序，有中文名优先，再按 key 排序
+            list.Sort((a, b) =>
+            {
+                int c = string.Compare(a.AreaKey, b.AreaKey, StringComparison.OrdinalIgnoreCase);
+                if (c != 0) return c;
+                bool aHas = !string.IsNullOrEmpty(a.Name);
+                bool bHas = !string.IsNullOrEmpty(b.Name);
+                if (aHas != bHas) return aHas ? -1 : 1;
+                return string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase);
+            });
+
+            _cachedMapListDto = new MapListDto { Maps = list };
+            return _cachedMapListDto;
+        }
+
+        public static void SendMapList()
+        {
+            try
+            {
+                var mapList = GetOrCreateMapList();
+                if (mapList.Maps.Count > 0)
+                {
+                    IpcServer.Instance.SendMapList(mapList);
+                    Debug.Log($"[AICMod] Sent {mapList.Maps.Count} maps to client");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] SendMapList failed: " + ex.Message);
+            }
+        }
+
+        public static bool TransferToMap(string mapKey)
+        {
+            var nm2d = GetM2D();
+            if (nm2d == null || string.IsNullOrEmpty(mapKey)) return false;
+
+            Map2d targetMap = nm2d.Get(mapKey, true);
+            if (targetMap == null)
+            {
+                try
+                {
+                    targetMap = new Map2d(nm2d, mapKey);
+                    nm2d.getMapObject()[mapKey] = targetMap;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[AICMod] Failed to instantiate Map2d({mapKey}): {ex}");
+                    return false;
+                }
+            }
+
+            try
+            {
+                // 使用游戏原生的事件堆栈执行传送流程 (与长椅/地图传送流程完全一致)
+                // 1. 关闭菜单 2. 异步加载地图素材 3. 等待加载完成 4. 执行快速传送
+                var evReader = new evt.EvReader("%TRAINER_WARP");
+                STB sTB = TX.PopBld();
+                sTB += "UIGM DEACTIVATE\n";
+                sTB += "DENY_SKIP\n";
+                sTB += "INIT_MAP_MATERIAL " + mapKey + " 1\n";
+                sTB += "WAIT 20\n";
+                sTB += "WAIT_FN MAP_TRANSFER\n";
+                sTB += "NEL_EXECUTE_FAST_TRAVEL '" + mapKey + "' 0 0 20\n";
+                sTB += "ALLOW_SKIP\n";
+                sTB += "WAIT_MOVE\n";
+                sTB += "PR_CURE 0 0 1\n";
+                evReader.parseText(sTB);
+                TX.ReleaseBld(sTB);
+                evt.EV.stackReader(evReader);
+                Debug.Log($"[AICMod] Queued native EV fast travel to map {mapKey}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[AICMod] EV.stackReader failed: {ex}, trying fallback to direct executeTransferFastTravel");
+                try
+                {
+                    nm2d.initMapMaterialASync(targetMap, 1, false);
+                    M2LpMapTransferBase.executeTransferFastTravel(targetMap, 0, 0, 20);
+                    Debug.Log($"[AICMod] Direct executeTransferFastTravel succeeded to {mapKey}");
+                    return true;
+                }
+                catch (Exception ex2)
+                {
+                    Debug.LogError($"[AICMod] Direct fast travel fallback failed: {ex2}, trying changeMap");
+                    try
+                    {
+                        nm2d.changeMap(targetMap);
+                        return true;
+                    }
+                    catch (Exception ex3)
+                    {
+                        Debug.LogError($"[AICMod] changeMap fallback failed: {ex3}");
+                        return false;
+                    }
+                }
+            }
+        }
+
+        #endregion
     }
 
     /// <summary>

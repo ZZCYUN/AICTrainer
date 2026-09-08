@@ -1684,6 +1684,7 @@ namespace AICTrainer.ViewModels
             if (AllMaps == null || AllMaps.Count == 0)
             {
                 Client.RequestMapList();
+                FallbackLoadGameMaps();
             }
 
             var dlg = new AICTrainer.Views.MapSelectDialog(this)
@@ -1697,6 +1698,123 @@ namespace AICTrainer.ViewModels
         {
             if (string.IsNullOrEmpty(mapKey)) return;
             Client.ChangeMap(mapKey);
+        }
+
+        public List<MapEntryDto> FallbackLoadGameMaps()
+        {
+            if (AllMaps != null && AllMaps.Count > 0) return AllMaps;
+
+            try
+            {
+                string? streamingAssetsPath = null;
+                // 1. 尝试从运行中游戏进程获取安装路径
+                var procs = System.Diagnostics.Process.GetProcessesByName("AliceInCradle");
+                if (procs.Length > 0)
+                {
+                    try
+                    {
+                        string? exeDir = Path.GetDirectoryName(procs[0].MainModule?.FileName);
+                        if (!string.IsNullOrEmpty(exeDir))
+                        {
+                            string p = Path.Combine(exeDir, "AliceInCradle_Data", "StreamingAssets");
+                            if (Directory.Exists(p)) streamingAssetsPath = p;
+                        }
+                    }
+                    catch { }
+                }
+
+                // 2. 检查默认路径
+                if (string.IsNullOrEmpty(streamingAssetsPath) || !Directory.Exists(streamingAssetsPath))
+                {
+                    string defaultP = @"C:\AliceInCradle\AliceInCradle_Data\StreamingAssets";
+                    if (Directory.Exists(defaultP)) streamingAssetsPath = defaultP;
+                }
+
+                if (string.IsNullOrEmpty(streamingAssetsPath) || !Directory.Exists(streamingAssetsPath))
+                {
+                    return AllMaps ?? new List<MapEntryDto>();
+                }
+
+                // 加载中文映射表
+                var zhNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                string zhPath = Path.Combine(streamingAssetsPath, "localization", "zh-cn", "zh-cn_tx_map_name.txt");
+                if (File.Exists(zhPath))
+                {
+                    foreach (var line in File.ReadAllLines(zhPath, System.Text.Encoding.UTF8))
+                    {
+                        string trimmed = line.Trim();
+                        if (trimmed.StartsWith("&&MAP_"))
+                        {
+                            var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"^&&MAP_(\w+)\s+(.+)$");
+                            if (match.Success)
+                            {
+                                zhNames[match.Groups[1].Value] = match.Groups[2].Value.Trim();
+                            }
+                        }
+                    }
+                }
+
+                // 加载全量地图列表
+                string datPath = Path.Combine(streamingAssetsPath, "m2d", "__m2d_list.dat");
+                if (File.Exists(datPath))
+                {
+                    var list = new List<MapEntryDto>();
+                    foreach (var raw in File.ReadAllLines(datPath))
+                    {
+                        string key = raw.Trim();
+                        if (string.IsNullOrEmpty(key) || key.StartsWith("_")) continue;
+
+                        string areaKey = key.Contains('_') ? key.Substring(0, key.IndexOf('_')) : key;
+                        string areaName = GetAreaChineseName(areaKey);
+                        string mapName = zhNames.TryGetValue(key, out string? zn) ? zn : "";
+
+                        list.Add(new MapEntryDto
+                        {
+                            Key = key,
+                            Name = mapName,
+                            AreaKey = areaKey,
+                            AreaName = areaName
+                        });
+                    }
+
+                    list.Sort((a, b) =>
+                    {
+                        int c = string.Compare(a.AreaKey, b.AreaKey, StringComparison.OrdinalIgnoreCase);
+                        if (c != 0) return c;
+                        bool aHas = !string.IsNullOrEmpty(a.Name);
+                        bool bHas = !string.IsNullOrEmpty(b.Name);
+                        if (aHas != bHas) return aHas ? -1 : 1;
+                        return string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase);
+                    });
+
+                    AllMaps = list;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[MainViewModel] FallbackLoadGameMaps failed: " + ex.Message);
+            }
+
+            return AllMaps ?? new List<MapEntryDto>();
+        }
+
+        public static string GetAreaChineseName(string areaKey)
+        {
+            switch (areaKey.ToLowerInvariant())
+            {
+                case "house": return "魔女之家";
+                case "forest": return "纺织之森";
+                case "city": return "恩惠小镇";
+                case "school": return "贝尔米特学院";
+                case "mount": return "陨落山脉";
+                case "glacier": return "冰川";
+                case "sea": return "海洋";
+                case "sacred": return "圣母石";
+                case "labo": return "地下研究所";
+                case "mine": return "矿区";
+                case "debug": return "调试地图";
+                default: return areaKey;
+            }
         }
 
         public void PushConfig()

@@ -83,6 +83,35 @@ namespace AICMod
             }
         }
 
+        public void SendMapList(MapListDto mapList)
+        {
+            if (!IsClientConnected || _writer == null) return;
+
+            try
+            {
+                string listJson = JsonUtility.ToJson(mapList);
+                var msg = new IpcMessage
+                {
+                    Type = "MapList",
+                    JsonData = listJson
+                };
+                string msgJson = JsonUtility.ToJson(msg);
+
+                lock (_writeLock)
+                {
+                    if (_writer != null && _activeClient != null && _activeClient.Connected)
+                    {
+                        _writer.WriteLine(msgJson);
+                        _writer.Flush();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] Failed to send map list over IPC: " + ex.Message);
+            }
+        }
+
         private void ServerWorker()
         {
             try

@@ -1,0 +1,255 @@
+<Window x:Class="AICTrainer.Views.MapSelectDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:h="clr-namespace:AICTrainer.Helpers"
+        Title="选择传送地图"
+        Width="640" Height="620"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="AccentCyan" Color="#00F0FF"/>
+        <SolidColorBrush x:Key="AccentBlue" Color="#38BDF8"/>
+        <SolidColorBrush x:Key="AccentPurple" Color="#A855F7"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#F3F4F6"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#9CA3AF"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#6B7280"/>
+        <SolidColorBrush x:Key="BorderDark" Color="#2A2A3E"/>
+
+        <!-- 筛选胶囊按钮样式 -->
+        <Style x:Key="FilterChipButton" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="bd" Background="#181828" BorderBrush="#2A2A3E" BorderThickness="1" CornerRadius="12" Padding="10,4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource AccentCyan}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#1A2D40"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource AccentCyan}"/>
+                                <Setter Property="Foreground" Value="{StaticResource AccentCyan}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 传送小按钮样式 -->
+        <Style x:Key="TeleportButton" TargetType="Button">
+            <Setter Property="Background" Value="#102538"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentCyan}"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#00F0FF"/>
+                                <Setter Property="Foreground" Value="#080D14"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#00C4D6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="#13131E" BorderBrush="#00F0FF" BorderThickness="1.5" CornerRadius="12" Margin="12">
+        <Border.Effect>
+            <DropShadowEffect Color="#00F0FF" BlurRadius="20" ShadowDepth="0" Opacity="0.35"/>
+        </Border.Effect>
+
+        <Grid Margin="20,16,20,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- 标题栏 -->
+                <RowDefinition Height="Auto"/> <!-- 搜索框 -->
+                <RowDefinition Height="Auto"/> <!-- 区域筛选 -->
+                <RowDefinition Height="*"/>    <!-- 地图列表 -->
+                <RowDefinition Height="Auto"/> <!-- 底部栏 -->
+            </Grid.RowDefinitions>
+
+            <!-- 1. 标题栏 (可按住拖动) -->
+            <Grid Grid.Row="0" Margin="0,0,0,12" MouseLeftButtonDown="OnTitleBarMouseDown" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="36" Height="36" CornerRadius="8" BorderBrush="#00F0FF" BorderThickness="1.5" Background="#14202A" Margin="0,0,10,0">
+                        <Border.Clip>
+                            <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,36,36"/>
+                        </Border.Clip>
+                        <Image Source="{h:Sticker 0_1}" Stretch="UniformToFill"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="🗺️ 选择传送地图" FontSize="16" FontWeight="Bold" Foreground="#F3F4F6"/>
+                        <TextBlock x:Name="SubtitleText" Text="当前地图: 载入中..." FontSize="11" Foreground="#9CA3AF"/>
+                    </StackPanel>
+                </StackPanel>
+                <Button Grid.Column="1" Content="✕" Width="28" Height="28" Background="Transparent" Foreground="#9CA3AF" BorderThickness="0" FontSize="14" Cursor="Hand" Click="OnCloseClick" VerticalAlignment="Top"/>
+            </Grid>
+
+            <!-- 2. 搜索框 -->
+            <Border Grid.Row="1" Background="#181828" BorderBrush="#2A2A3E" BorderThickness="1" CornerRadius="8" Padding="10,6" Margin="0,0,0,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="🔍" FontSize="12" Foreground="#9CA3AF" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="1" x:Name="SearchBox" Background="Transparent" BorderThickness="0" Foreground="#F3F4F6" CaretBrush="{StaticResource AccentCyan}" FontSize="12" VerticalAlignment="Center"
+                             TextChanged="OnSearchTextChanged" KeyDown="OnSearchBoxKeyDown"/>
+                    <TextBlock Grid.Column="1" x:Name="SearchPlaceholder" Text="搜索地图中文名称或标识 key (如: 诺艾儿、酒吧、forest)..." FontSize="12" Foreground="#6B7280" IsHitTestVisible="False" VerticalAlignment="Center"/>
+                    <Button Grid.Column="2" x:Name="ClearSearchBtn" Content="✕" Background="Transparent" BorderThickness="0" Foreground="#9CA3AF" Cursor="Hand" Visibility="Collapsed" Click="OnClearSearchClick" Margin="4,0,0,0"/>
+                </Grid>
+            </Border>
+
+            <!-- 3. 区域筛选标签栏 -->
+            <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+                <RadioButton Content="全部地图" IsChecked="True" GroupName="AreaFilter" Style="{StaticResource FilterChipButton}" Checked="OnAreaFilterChanged" Tag="ALL"/>
+                <RadioButton Content="魔女之家 (house)" GroupName="AreaFilter" Style="{StaticResource FilterChipButton}" Checked="OnAreaFilterChanged" Tag="house"/>
+                <RadioButton Content="纺织之森 (forest)" GroupName="AreaFilter" Style="{StaticResource FilterChipButton}" Checked="OnAreaFilterChanged" Tag="forest"/>
+                <RadioButton Content="恩惠小镇 (city)" GroupName="AreaFilter" Style="{StaticResource FilterChipButton}" Checked="OnAreaFilterChanged" Tag="city"/>
+                <RadioButton Content="贝尔米特学院 (school)" GroupName="AreaFilter" Style="{StaticResource FilterChipButton}" Checked="OnAreaFilterChanged" Tag="school"/>
+                <RadioButton Content="陨落山脉 (mount)" GroupName="AreaFilter" Style="{StaticResource FilterChipButton}" Checked="OnAreaFilterChanged" Tag="mount"/>
+                <RadioButton Content="冰川 (glacier)" GroupName="AreaFilter" Style="{StaticResource FilterChipButton}" Checked="OnAreaFilterChanged" Tag="glacier"/>
+                <RadioButton Content="地下研究所 (labo)" GroupName="AreaFilter" Style="{StaticResource FilterChipButton}" Checked="OnAreaFilterChanged" Tag="labo"/>
+                <RadioButton Content="矿区 (mine)" GroupName="AreaFilter" Style="{StaticResource FilterChipButton}" Checked="OnAreaFilterChanged" Tag="mine"/>
+                <RadioButton Content="圣母石 (sacred)" GroupName="AreaFilter" Style="{StaticResource FilterChipButton}" Checked="OnAreaFilterChanged" Tag="sacred"/>
+                <RadioButton Content="其它地图" GroupName="AreaFilter" Style="{StaticResource FilterChipButton}" Checked="OnAreaFilterChanged" Tag="OTHER"/>
+            </WrapPanel>
+
+            <!-- 4. 地图列表 -->
+            <Grid Grid.Row="3">
+                <Border Background="#10101A" BorderBrush="#252538" BorderThickness="1" CornerRadius="8" Padding="6">
+                    <ListBox x:Name="MapListBox" Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             MouseDoubleClick="OnMapItemDoubleClick"
+                             SelectionMode="Single">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0,0,0,4"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="ItemBorder" Background="#161826" BorderBrush="#26283C" BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                                <ContentPresenter/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#1C2136"/>
+                                                    <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{StaticResource AccentCyan}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#1A2D44"/>
+                                                    <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{StaticResource AccentCyan}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- 区域微标 -->
+                                    <Border Grid.Column="0" Background="#241B33" BorderBrush="#A259FF" BorderThickness="1" CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Margin="0,0,10,0">
+                                        <TextBlock Text="{Binding AreaDisplayName}" Foreground="#D2A8FF" FontSize="10" FontWeight="Medium"/>
+                                    </Border>
+
+                                    <!-- 地图信息 -->
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding PrimaryDisplayName}" FontSize="13" FontWeight="Bold" Foreground="{Binding NameColor}"/>
+                                            <!-- 当前地图角标 -->
+                                            <Border Visibility="{Binding CurrentBadgeVis}" Background="#065F46" CornerRadius="4" Padding="5,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="📍 当前所在" Foreground="#6EE7B7" FontSize="10" FontWeight="Medium"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding KeyDisplay}" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- 传送操作按钮 -->
+                                    <Button Grid.Column="2" Content="⚡ 传送" Style="{StaticResource TeleportButton}" Click="OnTeleportButtonClick" Tag="{Binding Key}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+
+                <!-- 空状态提示 -->
+                <StackPanel x:Name="EmptyStatePanel" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                    <TextBlock Text="🗺️" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="EmptyStateText" Text="暂无符合条件的地图" Foreground="#9CA3AF" FontSize="13" HorizontalAlignment="Center"/>
+                    <Button Content="🔄 刷新地图列表" Style="{StaticResource TeleportButton}" Margin="0,12,0,0" HorizontalAlignment="Center" Click="OnRefreshMapsClick"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- 5. 底部栏 -->
+            <Grid Grid.Row="4" Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="💡 提示: 双击列表项或点击「传送」，游戏将平滑加载目标地图并传送至安全着陆点"
+                           FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="🔄 刷新" Width="70" Height="30" Background="#1E1E2E" Foreground="{StaticResource TextSecondary}" BorderBrush="#383854" BorderThickness="1" Cursor="Hand" Click="OnRefreshMapsClick" Margin="0,0,8,0">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                    <Button Content="关闭" Width="70" Height="30" Background="#1E1E2E" Foreground="{StaticResource TextSecondary}" BorderBrush="#383854" BorderThickness="1" Cursor="Hand" Click="OnCloseClick" Margin="0,0,8,0">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                    <Button Content="🚀 传送至选中" Width="110" Height="30" Style="{StaticResource TeleportButton}" Click="OnTeleportSelectedClick"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

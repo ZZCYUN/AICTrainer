@@ -27,6 +27,7 @@ namespace AICTrainer.Services
         public bool IsConnected => _tcpClient != null && _tcpClient.Connected;
 
         public event Action<GameStateDto>? OnStateReceived;
+        public event Action<System.Collections.Generic.List<MapEntryDto>>? OnMapListReceived;
         public event Action? OnConnected;
         public event Action? OnDisconnected;
 
@@ -115,7 +116,7 @@ namespace AICTrainer.Services
             }
         }
 
-        public void SendAction(string actionName, int intParam = 0, float floatParam = 0f)
+        public void SendAction(string actionName, int intParam = 0, float floatParam = 0f, string stringParam = "")
         {
             if (!IsConnected || _writer == null) return;
 
@@ -125,7 +126,8 @@ namespace AICTrainer.Services
                 {
                     ActionName = actionName,
                     IntParam = intParam,
-                    FloatParam = floatParam
+                    FloatParam = floatParam,
+                    StringParam = stringParam
                 };
                 var msg = new IpcMessage
                 {
@@ -144,6 +146,16 @@ namespace AICTrainer.Services
             {
                 Debug.WriteLine("[TrainerClient] SendAction failed: " + ex.Message);
             }
+        }
+
+        public void RequestMapList()
+        {
+            SendAction("GetMapList");
+        }
+
+        public void ChangeMap(string mapKey)
+        {
+            SendAction("ChangeMap", stringParam: mapKey);
         }
 
         private void ListenLoop(NetworkStream stream, CancellationToken token)
@@ -166,6 +178,14 @@ namespace AICTrainer.Services
                                 if (state != null)
                                 {
                                     OnStateReceived?.Invoke(state);
+                                }
+                            }
+                            else if (msg != null && msg.Type == "MapList")
+                            {
+                                var mapList = JsonSerializer.Deserialize<MapListDto>(msg.JsonData, JsonOptions);
+                                if (mapList != null && mapList.Maps != null)
+                                {
+                                    OnMapListReceived?.Invoke(mapList.Maps);
                                 }
                             }
                         }

@@ -295,5 +295,21 @@ namespace AICShared
         public string ActionName = string.Empty;
         public int IntParam;
         public float FloatParam;
+        public string StringParam = string.Empty;
+    }
+
+    [Serializable]
+    public class MapEntryDto
+    {
+        public string Key = string.Empty;
+        public string Name = string.Empty;
+        public string AreaKey = string.Empty;
+        public string AreaName = string.Empty;
+    }
+
+    [Serializable]
+    public class MapListDto
+    {
+        public System.Collections.Generic.List<MapEntryDto> Maps = new System.Collections.Generic.List<MapEntryDto>();
     }
 }
