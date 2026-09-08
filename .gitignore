@@ -32,3 +32,6 @@ test_exact_crops/
 *.cache
 Thumbs.db
 [Dd]esktop.ini
+
+# ZCode 会话工作区
+.zcode/
