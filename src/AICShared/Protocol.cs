@@ -195,6 +195,9 @@ namespace AICShared
         // 39. 战斗地图内访问背包
         public bool AllowBattleBackpack;
 
+        // 40. 战斗地图内访问仓库（任意地点解锁屋内仓库）
+        public bool AllowBattleWarehouse;
+
         public ModConfigDto Clone()
         {
             var copy = new ModConfigDto();
@@ -269,6 +272,7 @@ namespace AICShared
             DisableHitCheck = other.DisableHitCheck;
             ShowHitboxes = other.ShowHitboxes;
             AllowBattleBackpack = other.AllowBattleBackpack;
+            AllowBattleWarehouse = other.AllowBattleWarehouse;
             HitboxShowName = other.HitboxShowName;
             HitboxShowHp = other.HitboxShowHp;
             HitboxShowMp = other.HitboxShowMp;
