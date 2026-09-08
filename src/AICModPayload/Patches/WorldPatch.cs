@@ -290,5 +290,41 @@ namespace AICMod.Patches
             }
             catch { }
         }
+
+        // 10. 官方传送落脚点容错（若目标地图无 !start 标签，自动重定向至 WarpTo/Bench/Start 或默认位置 !!，避免触发“矩形 !startが見つかりませんでした”报错）
+        [HarmonyPatch(typeof(M2LpMapTransferBase), "executeTransfer", new[] { typeof(Map2d), typeof(string), typeof(string) })]
+        [HarmonyPrefix]
+        public static void Prefix_executeTransfer(ref Map2d SrcMp, ref string aim, ref string jump_key)
+        {
+            try
+            {
+                var nm2d = M2DBase.Instance as NelM2DBase;
+                var curMap = nm2d?.curMap;
+                if (curMap != null && TX.isStart(jump_key, "!"))
+                {
+                    string label = TX.slice(jump_key, 1);
+                    if (curMap.getLabelPoint(label) == null)
+                    {
+                        if (curMap.getLabelPoint("WarpTo") != null)
+                        {
+                            jump_key = "!WarpTo";
+                        }
+                        else if (curMap.getLabelPoint("Bench") != null || curMap.getLabelPoint("bench") != null)
+                        {
+                            jump_key = "!Bench";
+                        }
+                        else if (curMap.getLabelPoint("Start") != null)
+                        {
+                            jump_key = "!Start";
+                        }
+                        else
+                        {
+                            jump_key = "!!";
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
     }
 }

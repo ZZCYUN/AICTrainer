@@ -972,232 +972,34 @@ namespace AICMod
             }
         }
 
-        public static (int x, int y) CalculateSafeLandingPos(NelM2DBase nm2d, Map2d targetMap)
-        {
-            if (targetMap.clms == 0 || targetMap.rows == 0)
-            {
-                try
-                {
-                    nm2d.readMapBody(targetMap);
-                    targetMap.load();
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning("[AICMod] Failed to pre-load map layout: " + ex.Message);
-                }
-            }
-
-            int clms = targetMap.clms > 0 ? targetMap.clms : 40;
-            int rows = targetMap.rows > 0 ? targetMap.rows : 30;
-            int targetX = clms / 2;
-            int targetY = rows / 2;
-
-            try
-            {
-                // 1. 优先寻找官方传送着陆点 "WarpTo" (游戏原生传送着陆标记)
-                M2LabelPoint warpTo = targetMap.getLabelPoint("WarpTo");
-                if (warpTo != null)
-                {
-                    targetX = (int)warpTo.mapfocx;
-                    targetY = (int)warpTo.mapfocy;
-                    return (targetX, targetY);
-                }
-
-                // 2. 寻找长椅标记 "Bench" / "bench" (长椅处有坚实地面且安全)
-                M2LabelPoint bench = targetMap.getLabelPoint("Bench") ?? targetMap.getLabelPoint("bench");
-                if (bench != null)
-                {
-                    targetX = (int)bench.mapfocx;
-                    targetY = (int)bench.mapfocy;
-                    return (targetX, targetY);
-                }
-
-                // 3. 寻找默认出生点 "start" / "Start"
-                M2LabelPoint start = targetMap.getLabelPoint("start") ?? targetMap.getLabelPoint("Start");
-                if (start != null)
-                {
-                    targetX = (int)start.mapfocx;
-                    targetY = (int)start.mapfocy;
-                    return (targetX, targetY);
-                }
-
-                // 4. 寻找传送门或出入口矩形 (M2LpMapTransferBase 或带有 door/transfer/warp 关键字)
-                M2LabelPoint door = targetMap.getLabelPoint((M2LabelPoint p) =>
-                    p is nel.M2LpMapTransferBase ||
-                    p.key.IndexOf("transfer", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    p.key.IndexOf("door", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    p.key.IndexOf("warp", StringComparison.OrdinalIgnoreCase) >= 0);
-                if (door != null)
-                {
-                    targetX = (int)door.mapfocx;
-                    targetY = (int)door.mapfocy;
-                    return (targetX, targetY);
-                }
-
-                // 5. 从大地图 WholeMapItem 寻找该地图的标记图标坐标
-                if (nm2d.WM != null)
-                {
-                    var wm = nm2d.WM.GetWholeFor(targetMap);
-                    if (wm != null)
-                    {
-                        var icons = wm.GetIconVectorFor(targetMap);
-                        if (icons != null && icons.Count > 0)
-                        {
-                            targetX = (int)icons[0].x;
-                            targetY = (int)icons[0].y;
-                            return (targetX, targetY);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[AICMod] Error querying label points: " + ex.Message);
-            }
-
-            // 6. 无任何预设标记时的通用安全地面探测：限制边界并从中心向两侧扫描坚实地面
-            try
-            {
-                targetX = Mathf.Clamp(targetX, 2, Mathf.Max(2, clms - 3));
-                targetY = Mathf.Clamp(targetY, 2, Mathf.Max(2, rows - 3));
-
-                float fy = targetMap.getFootableY(targetX + 0.5f, targetY, 25, true, -1f, true);
-                if (fy > 0f && fy < rows)
-                {
-                    targetY = (int)fy;
-                }
-                else
-                {
-                    for (int d = 0; d < clms / 2; d++)
-                    {
-                        int x1 = clms / 2 + d;
-                        int x2 = clms / 2 - d;
-                        if (x1 > 2 && x1 < clms - 2)
-                        {
-                            float testFy = targetMap.getFootableY(x1 + 0.5f, rows / 2, rows, true, -1f, true);
-                            if (testFy > 0f && testFy < rows - 1)
-                            {
-                                targetX = x1;
-                                targetY = (int)testFy;
-                                break;
-                            }
-                        }
-                        if (x2 > 2 && x2 < clms - 2)
-                        {
-                            float testFy = targetMap.getFootableY(x2 + 0.5f, rows / 2, rows, true, -1f, true);
-                            if (testFy > 0f && testFy < rows - 1)
-                            {
-                                targetX = x2;
-                                targetY = (int)testFy;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            catch { }
-
-            return (targetX, targetY);
-        }
-
         public static bool TransferToMap(string mapKey)
         {
             var nm2d = GetM2D();
             if (nm2d == null || string.IsNullOrEmpty(mapKey)) return false;
 
-            Map2d targetMap = nm2d.Get(mapKey, true);
-            if (targetMap == null)
-            {
-                try
-                {
-                    targetMap = new Map2d(nm2d, mapKey);
-                    nm2d.getMapObject()[mapKey] = targetMap;
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"[AICMod] Failed to instantiate Map2d({mapKey}): {ex}");
-                    return false;
-                }
-            }
-
-            // 计算精准的安全落脚点坐标 (优先官方着陆点/长椅/出生点/坚实地面，彻底避免卡墙)
-            var (safeX, safeY) = CalculateSafeLandingPos(nm2d, targetMap);
-
             try
             {
-                // 使用游戏原生的事件堆栈执行跨区域/同区域完整传送流程 (与游戏快速旅行一致)
-                // 1. 关闭UI菜单与信箱模式
-                // 2. 预卸载当前地图实体事件 (PRE_UNLOAD)
-                // 3. 准备新地图BGM
-                // 4. 设置材质刷新标记 (ADD_MAPFLUSH_FLAG + INIT_MAP_MATERIAL 3)，触发 M2ImageAtlas 与地图切片重构，彻底解决跨区域材质撕裂错乱
-                // 5. 等待素材异步加载完毕 (WAIT_FN MAP_TRANSFER)
-                // 6. 执行快速传送，落地后由 Harmony Postfix 立即清除多余移动脚本，精准降落在安全地面
-                var evReader = new evt.EvReader("%TRAINER_WARP");
-                STB sTB = TX.PopBld();
-                sTB += "UIGM DEACTIVATE\n";
-                sTB += "DENY_SKIP\n";
-                sTB += "STOP_LETTERBOX\n";
-                sTB += "SEND_EVENT_CORRUPTION PRE_UNLOAD\n";
-                sTB += "INIT_MAP_BGM " + mapKey + "\n";
-                sTB += "ADD_MAPFLUSH_FLAG\n";
-                sTB += "INIT_MAP_MATERIAL " + mapKey + " 3\n";
-                sTB += "WAIT 20\n";
-                sTB += "WAIT_FN MAP_TRANSFER\n";
-                sTB += "NEL_EXECUTE_FAST_TRAVEL '" + mapKey + "' " + safeX + " " + safeY + " 0\n";
-                sTB += "ALLOW_SKIP\n";
-                sTB += "WAIT_MOVE\n";
-                sTB += "PR_CURE 0 0 1\n";
-                evReader.parseText(sTB);
-                TX.ReleaseBld(sTB);
-                evt.EV.stackReader(evReader);
-                Debug.Log($"[AICMod] Queued native EV fast travel to {mapKey} at safe pos ({safeX}, {safeY}) with atlas flush");
+                if (nm2d.curMap != null && string.Equals(nm2d.curMap.key, mapKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.Log($"[AICMod] Already in map {mapKey}");
+                    return true;
+                }
+
+                // 退出可能正在打开的UI菜单
+                if (nm2d.GM != null)
+                {
+                    nm2d.GM.deactivate(true);
+                }
+
+                // 直接调用游戏官方原版内置地图传送实现：_DEBUG_GOTO_MAP
+                evt.EV.stack("_DEBUG_GOTO_MAP", 0, -1, new string[1] { mapKey });
+                Debug.Log($"[AICMod] Executed official _DEBUG_GOTO_MAP to {mapKey}");
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[AICMod] EV.stackReader failed: {ex}, trying fallback to direct executeTransferFastTravel");
-                try
-                {
-                    nm2d.setFlushOtherMatFlag();
-                    nm2d.setFlushMapFlag();
-                    nm2d.setFlushAllFlag(false);
-                    nm2d.initMapMaterialASync(targetMap, 3, false);
-                    M2LpMapTransferBase.executeTransferFastTravel(targetMap, safeX, safeY, 0);
-                    var pr = GetPlayer();
-                    if (pr != null)
-                    {
-                        pr.quitMoveScript();
-                        pr.getPhysic()?.killSpeedForce();
-                    }
-                    nm2d.Cam.fineImmediately();
-                    Debug.Log($"[AICMod] Direct executeTransferFastTravel succeeded to {mapKey} at ({safeX}, {safeY})");
-                    return true;
-                }
-                catch (Exception ex2)
-                {
-                    Debug.LogError($"[AICMod] Direct fast travel fallback failed: {ex2}, trying changeMap");
-                    try
-                    {
-                        nm2d.setFlushOtherMatFlag();
-                        nm2d.setFlushMapFlag();
-                        nm2d.setFlushAllFlag(false);
-                        nm2d.changeMap(targetMap);
-                        var pr = GetPlayer();
-                        if (pr != null)
-                        {
-                            pr.quitMoveScript();
-                            pr.getPhysic()?.killSpeedForce();
-                            pr.setTo(safeX, safeY - pr.sizey);
-                        }
-                        nm2d.Cam.fineImmediately();
-                        return true;
-                    }
-                    catch (Exception ex3)
-                    {
-                        Debug.LogError($"[AICMod] changeMap fallback failed: {ex3}");
-                        return false;
-                    }
-                }
+                Debug.LogError($"[AICMod] Failed to execute official _DEBUG_GOTO_MAP: {ex}");
+                return false;
             }
         }
 
