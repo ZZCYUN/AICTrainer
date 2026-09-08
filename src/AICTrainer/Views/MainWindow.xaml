@@ -2668,6 +2668,51 @@
                             </Grid>
                         </Grid>
                     </Border>
+                    <!-- 战斗背包访问 -->
+                    <Border Visibility="{Binding Vis_BattleBackpack}" Style="{StaticResource FeatureCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- 左侧表情图标 -->
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" BorderBrush="#383852" BorderThickness="1" Background="#141420" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Border.Clip>
+                                    <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,40,40"/>
+                                </Border.Clip>
+                                <Image Source="{h:Sticker 2_7}" Stretch="UniformToFill"/>
+                            </Border>
+                            <!-- 右侧主体内容 -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="战斗背包访问" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="13"/>
+                                        <Border Margin="8,0,0,0" Background="#1E293B" CornerRadius="6" Padding="6,1">
+                                            <TextBlock Text="战斗可用" Foreground="#38BDF8" FontSize="11"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Style="{StaticResource StarButton}" Command="{Binding ToggleFavCommand}" CommandParameter="BattleBackpack" Background="{Binding StarBg_BattleBackpack}" BorderBrush="{Binding StarBorder_BattleBackpack}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StarChar_BattleBackpack}" Foreground="{Binding StarColor_BattleBackpack}" FontSize="15" FontWeight="Bold" Margin="0,-2,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding StarText_BattleBackpack}" Foreground="{Binding StarTextColor_BattleBackpack}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="允许在战斗地图/遭遇战中打开游戏菜单与背包（解除菜单锁定）" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource ModernToggleSwitch}" Content="战斗开启" IsChecked="{Binding IsAllowBattleBackpack}"/>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
                         </UniformGrid>
                     </StackPanel>
 
