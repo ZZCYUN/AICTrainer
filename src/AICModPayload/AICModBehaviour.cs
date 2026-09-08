@@ -1319,13 +1319,14 @@ namespace AICMod
         }
 
         /// <summary>
-        /// 反射调用官方 NelItemManager.getItem，多签名回退防止版本升级签名漂移导致 JIT 异常
+        /// 反射调用官方 NelItemManager.getItem，多签名回退防止版本升级签名漂移导致 JIT 异常。
+        /// event_spill=true：背包满时剩余物品掉落/转入屋内仓库，保证一定拿得到。
         /// </summary>
         private static int InvokeOfficialGetItem(NelItemManager imng, NelItem item, int count, int grade)
         {
             var t = typeof(NelItemManager);
             var m7 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool), typeof(bool), typeof(bool), typeof(bool) });
-            if (m7 != null) return (int)m7.Invoke(imng, new object[] { item, count, grade, false, false, false, false });
+            if (m7 != null) return (int)m7.Invoke(imng, new object[] { item, count, grade, false, false, true, false });
             var m6 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool), typeof(bool), typeof(bool) });
             if (m6 != null) return (int)m6.Invoke(imng, new object[] { item, count, grade, false, false, false });
             var m5 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool), typeof(bool) });

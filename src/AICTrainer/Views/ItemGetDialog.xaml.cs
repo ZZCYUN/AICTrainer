@@ -240,14 +240,37 @@ namespace AICTrainer.Views
 
         private void OnGetSelectedClick(object sender, RoutedEventArgs e)
         {
-            if (ItemListBox.SelectedItem is ItemDisplayItem selected)
+            var selected = ItemListBox.SelectedItems.Cast<ItemDisplayItem>().Where(x => !string.IsNullOrEmpty(x.Key)).ToList();
+            if (selected.Count == 0)
             {
-                AddItem(selected.Key);
+                MessageBox.Show("请先在列表中选中要获取的物品！（Ctrl/Shift 可多选）", "未选择物品", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
             }
-            else
+
+            int count = GetCurrentCount();
+            int grade = GetCurrentGrade();
+            foreach (var it in selected)
             {
-                MessageBox.Show("请先在列表中选中要获取的物品！", "未选择物品", MessageBoxButton.OK, MessageBoxImage.Information);
+                _vm.ExecuteAddItem(it.Key, count, grade);
             }
+
+            // 批量获取后刷新一次列表，让持有数实时更新
+            try
+            {
+                _vm.Client.RequestItemList();
+            }
+            catch { }
+        }
+
+        private void OnSelectAllClick(object sender, RoutedEventArgs e)
+        {
+            ItemListBox.SelectAll();
+            ItemListBox.Focus();
+        }
+
+        private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            SelectedCountText.Text = $"已选 {ItemListBox.SelectedItems.Count} 项";
         }
 
         private void AddItem(string key)

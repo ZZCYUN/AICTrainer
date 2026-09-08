@@ -87,6 +87,7 @@
                 <RowDefinition Height="Auto"/> <!-- 搜索框 -->
                 <RowDefinition Height="Auto"/> <!-- 分类筛选 -->
                 <RowDefinition Height="*"/>    <!-- 物品列表 -->
+                <RowDefinition Height="Auto"/> <!-- 数量与星级 -->
                 <RowDefinition Height="Auto"/> <!-- 底部栏 -->
             </Grid.RowDefinitions>
 
@@ -146,7 +147,8 @@
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                              MouseDoubleClick="OnItemDoubleClick"
-                             SelectionMode="Single">
+                             SelectionChanged="OnSelectionChanged"
+                             SelectionMode="Extended">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -216,8 +218,8 @@
                 </StackPanel>
             </Grid>
 
-            <!-- 5. 底部栏 -->
-            <Grid Grid.Row="4" Margin="0,12,0,0">
+            <!-- 5. 数量与星级 -->
+            <Grid Grid.Row="4" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -227,29 +229,47 @@
                     <TextBox x:Name="CountBox" Text="1" Width="44" Height="26" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                              Background="#181828" BorderBrush="#2A2A3E" BorderThickness="1" Foreground="{StaticResource TextPrimary}"
                              CaretBrush="{StaticResource AccentCyan}" FontSize="12" MaxLength="4" PreviewTextInput="OnCountPreviewTextInput"/>
-                    <TextBlock Text="星级:" FontSize="12" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                    <TextBlock Text="星级:" FontSize="12" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="14,0,6,0"/>
                     <RadioButton Content="★1" GroupName="GradeFilter" Style="{StaticResource FilterChipButton}" IsChecked="True" Checked="OnGradeFilterChanged" Tag="0" VerticalAlignment="Center"/>
                     <RadioButton Content="★2" GroupName="GradeFilter" Style="{StaticResource FilterChipButton}" Checked="OnGradeFilterChanged" Tag="1" VerticalAlignment="Center"/>
                     <RadioButton Content="★3" GroupName="GradeFilter" Style="{StaticResource FilterChipButton}" Checked="OnGradeFilterChanged" Tag="2" VerticalAlignment="Center"/>
                     <RadioButton Content="★4" GroupName="GradeFilter" Style="{StaticResource FilterChipButton}" Checked="OnGradeFilterChanged" Tag="3" VerticalAlignment="Center"/>
                     <RadioButton Content="★5" GroupName="GradeFilter" Style="{StaticResource FilterChipButton}" Checked="OnGradeFilterChanged" Tag="4" VerticalAlignment="Center"/>
                 </StackPanel>
+                <TextBlock Grid.Column="1" x:Name="SelectedCountText" Text="已选 0 项" FontSize="12" Foreground="#6EE7B7" VerticalAlignment="Center" FontWeight="SemiBold"/>
+            </Grid>
+
+            <!-- 6. 底部按钮栏 -->
+            <Grid Grid.Row="5" Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="💡 Ctrl/Shift 多选，双击可单条获取；背包满时会掉落/转入屋内仓库"
+                           FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="🔄 刷新" Width="70" Height="30" Background="#1E1E2E" Foreground="{StaticResource TextSecondary}" BorderBrush="#383854" BorderThickness="1" Cursor="Hand" Click="OnRefreshItemsClick" Margin="0,0,8,0">
+                    <Button Content="🔄 刷新" Width="64" Height="30" Background="#1E1E2E" Foreground="{StaticResource TextSecondary}" BorderBrush="#383854" BorderThickness="1" Cursor="Hand" Click="OnRefreshItemsClick" Margin="0,0,6,0">
                         <Button.Resources>
                             <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="6"/>
                             </Style>
                         </Button.Resources>
                     </Button>
-                    <Button Content="关闭" Width="70" Height="30" Background="#1E1E2E" Foreground="{StaticResource TextSecondary}" BorderBrush="#383854" BorderThickness="1" Cursor="Hand" Click="OnCloseClick" Margin="0,0,8,0">
+                    <Button Content="全选" Width="56" Height="30" Background="#1E1E2E" Foreground="{StaticResource TextSecondary}" BorderBrush="#383854" BorderThickness="1" Cursor="Hand" Click="OnSelectAllClick" Margin="0,0,6,0">
                         <Button.Resources>
                             <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="6"/>
                             </Style>
                         </Button.Resources>
                     </Button>
-                    <Button Content="🎁 获取选中" Width="100" Height="30" Style="{StaticResource GetItemButton}" Click="OnGetSelectedClick"/>
+                    <Button Content="关闭" Width="56" Height="30" Background="#1E1E2E" Foreground="{StaticResource TextSecondary}" BorderBrush="#383854" BorderThickness="1" Cursor="Hand" Click="OnCloseClick" Margin="0,0,6,0">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                    <Button Content="🎁 获取选中" Width="96" Height="30" Style="{StaticResource GetItemButton}" Click="OnGetSelectedClick"/>
                 </StackPanel>
             </Grid>
         </Grid>
