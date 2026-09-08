@@ -193,10 +193,16 @@ namespace AICTrainer.Services
                             }
                             else if (msg != null && msg.Type == "MapList")
                             {
-                                var mapList = JsonSerializer.Deserialize<MapListDto>(msg.JsonData, JsonOptions);
+                                DiagLog.Write($"TrainerClient: MapList msg received, JsonData len={msg.JsonData?.Length ?? 0}");
+                                var mapList = JsonSerializer.Deserialize<MapListDto>(msg.JsonData ?? "", JsonOptions);
                                 if (mapList != null && mapList.Maps != null)
                                 {
+                                    DiagLog.Write($"TrainerClient: MapList deserialized {mapList.Maps.Count} maps");
                                     OnMapListReceived?.Invoke(mapList.Maps);
+                                }
+                                else
+                                {
+                                    DiagLog.Write("TrainerClient: MapList deserialize FAILED (null)");
                                 }
                             }
                             else if (msg != null && msg.Type == "ItemList")

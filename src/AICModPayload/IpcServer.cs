@@ -89,7 +89,8 @@ namespace AICMod
 
             try
             {
-                string listJson = JsonUtility.ToJson(mapList);
+                // 注意：Unity JsonUtility 无法序列化 List<自定义类> 字段（返回 {}），列表统一手工构造 JSON
+                string listJson = AicJson.MapList(mapList.Maps);
                 var msg = new IpcMessage
                 {
                     Type = "MapList",
@@ -118,7 +119,8 @@ namespace AICMod
 
             try
             {
-                string listJson = JsonUtility.ToJson(itemList);
+                // 注意：Unity JsonUtility 无法序列化 List<自定义类> 字段（返回 {}），列表统一手工构造 JSON
+                string listJson = AicJson.ItemList(itemList.Items);
                 var msg = new IpcMessage
                 {
                     Type = "ItemList",
