@@ -320,6 +320,7 @@ namespace AICTrainer.ViewModels
                 _isInjected = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(InjectButtonVis));
+                OnPropertyChanged(nameof(IsInMap));
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
             }
         }
@@ -330,10 +331,17 @@ namespace AICTrainer.ViewModels
             {
                 _isGameReady = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsInMap));
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
             }
         }
-        public Visibility ChangeMapButtonVis => IsInjected ? Visibility.Visible : Visibility.Collapsed;
+
+        public bool IsInMap => IsInjected && IsGameReady && !string.IsNullOrEmpty(CurrentMapText) &&
+                               CurrentMapText != "未在游戏中" &&
+                               CurrentMapText != "标题画面 / 菜单" &&
+                               CurrentMapText != "关卡载入中";
+
+        public Visibility ChangeMapButtonVis => IsInMap ? Visibility.Visible : Visibility.Collapsed;
 
         public string StatusText { get => _statusText; set { _statusText = value; OnPropertyChanged(); } }
         public string StatusColor { get => _statusColor; set { _statusColor = value; OnPropertyChanged(); } }
@@ -344,6 +352,7 @@ namespace AICTrainer.ViewModels
             {
                 _currentMapText = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsInMap));
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
             }
         }
