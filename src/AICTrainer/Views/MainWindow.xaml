@@ -669,9 +669,11 @@
                                         Command="{Binding LaunchGameCommand}"/>
                                 <Button Content="⚡ 注入 / 连接" Style="{StaticResource NeonButton}"
                                         Visibility="{Binding InjectButtonVis}"
+                                        Margin="0,0,8,0"
                                         Click="OnInjectClick"/>
                                 <Button Content="🎒 获取物品" Style="{StaticResource NeonButton}"
                                         Visibility="{Binding ItemGetButtonVis}"
+                                        Margin="0,0,8,0"
                                         Command="{Binding OpenItemGetCommand}"
                                         ToolTip="调用游戏官方 debug 的 getItem 获取任意物品（仅限进入关卡地图后使用）"/>
                                 <Button Content="🗺️ 更换地图" Style="{StaticResource NeonButton}"

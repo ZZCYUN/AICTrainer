@@ -1102,7 +1102,8 @@ namespace AICMod
 
         /// <summary>
         /// 从游戏程序集全量字典 NelItem.getWholeDictionary() 采集所有物品（key + 中文名 + 分类 + 持有数），
-        /// 与地图列表一样每次请求实时重建，保证持有数准确
+        /// 与地图列表一样每次请求实时重建，保证持有数准确。包含 is_cache_item（__ 开头的料理等内部物品），
+        /// 持有数跨 背包/珍贵/强化/仓库 全部库存合计。
         /// </summary>
         public static ItemListDto GetItemList()
         {
@@ -1110,39 +1111,77 @@ namespace AICMod
             try
             {
                 var whole = NelItem.getWholeDictionary();
-                var inv = GetM2D()?.IMNG?.getInventory();
+                if (whole == null)
+                {
+                    Debug.LogWarning("[AICMod] GetItemList: NelItem.OData is null");
+                    return new ItemListDto { Items = list };
+                }
+
+                var storages = new List<ItemStorage>();
+                var nm2d = GetM2D();
+                if (nm2d?.IMNG != null)
+                {
+                    try
+                    {
+                        foreach (var st in nm2d.IMNG.getInventoryArray())
+                        {
+                            if (st != null) storages.Add(st);
+                        }
+                    }
+                    catch { }
+                    try
+                    {
+                        var house = nm2d.IMNG.getHouseInventory();
+                        if (house != null) storages.Add(house);
+                    }
+                    catch { }
+                }
 
                 foreach (KeyValuePair<string, NelItem> pair in whole)
                 {
                     var itm = pair.Value;
                     if (itm == null) continue;
 
-                    try { if (itm.is_cache_item) continue; } catch { }
-
                     string name = itm.key;
                     try
                     {
-                        string n = itm.getLocalizedName(0);
+                        string n = itm.fineNameLocalized();
                         if (string.IsNullOrWhiteSpace(n) || n == itm.key)
                         {
-                            n = itm.fineNameLocalized();
+                            n = itm.getLocalizedName(0);
                         }
                         if (!string.IsNullOrWhiteSpace(n)) name = n;
                     }
                     catch { }
 
+                    bool isCache = false;
+                    try { isCache = itm.is_cache_item; } catch { }
+
                     string cat = "OTHER";
-                    try { cat = itm.category.ToString(); } catch { }
+                    try { cat = isCache ? "CACHE" : itm.category.ToString(); } catch { }
+                    string catZh = isCache ? "缓存/内部" : GetItemCategoryChineseName(cat);
 
                     int owned = -1;
-                    try { if (inv != null) owned = inv.getCount(itm, -1); } catch { }
+                    try
+                    {
+                        int sum = 0;
+                        bool any = false;
+                        foreach (var st in storages)
+                        {
+                            if (st == null) continue;
+                            sum += st.getCount(itm, -1);
+                            any = true;
+                        }
+                        if (any) owned = sum;
+                    }
+                    catch { }
 
                     list.Add(new ItemEntryDto
                     {
                         Key = itm.key,
                         Name = name,
                         Category = cat,
-                        CategoryZh = GetItemCategoryChineseName(cat),
+                        CategoryZh = catZh,
                         OwnedCount = owned
                     });
                 }
@@ -1156,6 +1195,8 @@ namespace AICMod
                     if (aHas != bHas) return aHas ? -1 : 1;
                     return string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase);
                 });
+
+                Debug.Log($"[AICMod] GetItemList collected {list.Count} items");
             }
             catch (Exception ex)
             {
@@ -1169,11 +1210,8 @@ namespace AICMod
             try
             {
                 var itemList = GetItemList();
-                if (itemList.Items.Count > 0)
-                {
-                    IpcServer.Instance.SendItemList(itemList);
-                    Debug.Log($"[AICMod] Sent {itemList.Items.Count} items to client");
-                }
+                IpcServer.Instance.SendItemList(itemList);
+                Debug.Log($"[AICMod] Sent {itemList.Items.Count} items to client");
             }
             catch (Exception ex)
             {

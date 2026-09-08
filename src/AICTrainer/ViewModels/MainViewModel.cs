@@ -1732,11 +1732,8 @@ namespace AICTrainer.ViewModels
                 return;
             }
 
-            if (AllItems == null || AllItems.Count == 0)
-            {
-                Client.RequestItemList();
-                FallbackLoadGameItems();
-            }
+            // 每次打开都向 MOD 端请求最新物品列表（全量来自程序集反射，含实时持有数）
+            Client.RequestItemList();
 
             var dlg = new AICTrainer.Views.ItemGetDialog(this)
             {
@@ -1749,84 +1746,6 @@ namespace AICTrainer.ViewModels
         {
             if (string.IsNullOrEmpty(itemKey) || count <= 0) return;
             Client.AddItem(itemKey, count);
-        }
-
-        /// <summary>
-        /// 物品列表的离线兜底：扫描本地化文件中的 %ITEM key 名称 行。
-        /// 仅当 IPC 物品列表尚未到达时使用；完整列表始终以 MOD 端程序集反射结果为准。
-        /// </summary>
-        public List<ItemEntryDto> FallbackLoadGameItems()
-        {
-            if (AllItems != null && AllItems.Count > 0) return AllItems;
-
-            try
-            {
-                string? streamingAssetsPath = null;
-                var procs = System.Diagnostics.Process.GetProcessesByName("AliceInCradle");
-                if (procs.Length > 0)
-                {
-                    try
-                    {
-                        string? exeDir = Path.GetDirectoryName(procs[0].MainModule?.FileName);
-                        if (!string.IsNullOrEmpty(exeDir))
-                        {
-                            string p = Path.Combine(exeDir, "AliceInCradle_Data", "StreamingAssets");
-                            if (Directory.Exists(p)) streamingAssetsPath = p;
-                        }
-                    }
-                    catch { }
-                }
-
-                if (string.IsNullOrEmpty(streamingAssetsPath) || !Directory.Exists(streamingAssetsPath))
-                {
-                    string defaultP = @"C:\AliceInCradle\AliceInCradle_Data\StreamingAssets";
-                    if (Directory.Exists(defaultP)) streamingAssetsPath = defaultP;
-                }
-
-                if (string.IsNullOrEmpty(streamingAssetsPath) || !Directory.Exists(streamingAssetsPath))
-                {
-                    return AllItems ?? new List<ItemEntryDto>();
-                }
-
-                var items = new List<ItemEntryDto>();
-                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                string zhDir = Path.Combine(streamingAssetsPath, "localization", "zh-cn");
-                if (Directory.Exists(zhDir))
-                {
-                    foreach (var file in Directory.GetFiles(zhDir, "*.txt"))
-                    {
-                        if (!File.Exists(file)) continue;
-                        foreach (var line in File.ReadAllLines(file, System.Text.Encoding.UTF8))
-                        {
-                            string trimmed = line.Trim();
-                            if (!trimmed.StartsWith("%ITEM ")) continue;
-                            // 格式: %ITEM <key> <名称> [描述...]
-                            var parts = trimmed.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                            if (parts.Length < 3) continue;
-                            string key = parts[1];
-                            if (!seen.Add(key)) continue;
-                            items.Add(new ItemEntryDto
-                            {
-                                Key = key,
-                                Name = parts[2],
-                                Category = "",
-                                CategoryZh = "其他",
-                                OwnedCount = -1
-                            });
-                        }
-                    }
-                }
-
-                items.Sort((a, b) => string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase));
-                if (items.Count > 0) AllItems = items;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("[MainViewModel] FallbackLoadGameItems failed: " + ex.Message);
-            }
-
-            return AllItems ?? new List<ItemEntryDto>();
         }
 
         public List<MapEntryDto> FallbackLoadGameMaps()

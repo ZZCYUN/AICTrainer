@@ -50,10 +50,6 @@ namespace AICTrainer.Views
             _allDisplayItems.Clear();
 
             var items = _vm.AllItems;
-            if (items == null || items.Count == 0)
-            {
-                items = _vm.FallbackLoadGameItems();
-            }
 
             if (items != null && items.Count > 0)
             {
@@ -120,6 +116,9 @@ namespace AICTrainer.Views
             {
                 EmptyStatePanel.Visibility = Visibility.Visible;
                 ItemListBox.Visibility = Visibility.Collapsed;
+                EmptyStateText.Text = _allDisplayItems.Count == 0
+                    ? "正在从游戏获取物品列表，请稍候..."
+                    : "暂无符合条件的物品";
             }
             else
             {
@@ -191,7 +190,6 @@ namespace AICTrainer.Views
             }
             catch { }
 
-            _vm.FallbackLoadGameItems();
             LoadItems();
         }
 
