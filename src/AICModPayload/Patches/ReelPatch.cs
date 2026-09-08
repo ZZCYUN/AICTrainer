@@ -44,13 +44,13 @@ namespace AICMod.Patches
             }
         }
 
-        // 2. 自动推进控制（区分首轮自动选择与加成轮自动选择）：挂钩 UiReelManager.run
+        // 2. 自动推进控制（区分首轮自动选择与加成轮自动选择）：挂钩 UiReelManager.runIRD
         [HarmonyPatch]
         public static class Patch_UiReelManager_run
         {
             public static MethodBase? TargetMethod()
             {
-                return AccessTools.Method(typeof(UiReelManager), "run", new[] { typeof(int) });
+                return AccessTools.Method(typeof(UiReelManager), "runIRD", new[] { typeof(float) });
             }
 
             [HarmonyPrefix]
