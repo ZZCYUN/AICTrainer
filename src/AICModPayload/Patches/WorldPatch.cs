@@ -274,24 +274,7 @@ namespace AICMod.Patches
             return true;
         }
 
-        // 9. 传送后清除多余的移动脚本（防止自动走入墙壁或触发“移動先が通行できないため”错误）
-        [HarmonyPatch(typeof(M2LpMapTransferBase), "executeTransferFastTravel", new[] { typeof(Map2d), typeof(int), typeof(int), typeof(int) })]
-        [HarmonyPostfix]
-        public static void Postfix_executeTransferFastTravel(Map2d DepMp)
-        {
-            try
-            {
-                var keyPr = DepMp?.getKeyPr();
-                if (keyPr != null)
-                {
-                    keyPr.quitMoveScript();
-                    keyPr.getPhysic()?.killSpeedForce();
-                }
-            }
-            catch { }
-        }
-
-        // 10. 官方传送落脚点容错（若目标地图无 !start 标签，自动重定向至 WarpTo/Bench/Start 或默认位置 !!，避免触发“矩形 !startが見つかりませんでした”报错）
+        // 9. 官方传送落脚点容错（若目标地图无 !start 标签，自动重定向至 WarpTo/Bench/Start 或默认位置 !!，避免触发“矩形 !startが見つかりませんでした”报错）
         [HarmonyPatch(typeof(M2LpMapTransferBase), "executeTransfer", new[] { typeof(Map2d), typeof(string), typeof(string) })]
         [HarmonyPrefix]
         public static void Prefix_executeTransfer(ref Map2d SrcMp, ref string aim, ref string jump_key)
