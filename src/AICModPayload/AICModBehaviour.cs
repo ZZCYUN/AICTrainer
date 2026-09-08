@@ -558,7 +558,6 @@ namespace AICMod
                     case "AddItem":
                         if (!string.IsNullOrEmpty(act.StringParam))
                         {
-                            ItemLog($"HandleAction AddItem key={act.StringParam} count={act.IntParam} grade={act.IntParam2}");
                             GiveItem(act.StringParam, act.IntParam > 0 ? act.IntParam : 1, act.IntParam2);
                         }
                         break;
@@ -1242,8 +1241,6 @@ namespace AICMod
                     if (aHas != bHas) return aHas ? -1 : 1;
                     return string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase);
                 });
-
-                Debug.Log($"[AICMod] GetItemList collected {list.Count} items");
             }
             catch (Exception ex)
             {
@@ -1274,11 +1271,7 @@ namespace AICMod
         public static bool GiveItem(string itemKey, int count, int grade = 0)
         {
             var nm2d = GetM2D();
-            if (nm2d == null || nm2d.IMNG == null || string.IsNullOrEmpty(itemKey) || count <= 0)
-            {
-                ItemLog($"GiveItem REJECTED key={itemKey} count={count} (nm2d={(nm2d != null)} imng={(nm2d?.IMNG != null)})");
-                return false;
-            }
+            if (nm2d == null || nm2d.IMNG == null || string.IsNullOrEmpty(itemKey) || count <= 0) return false;
 
             try
             {
@@ -1286,7 +1279,6 @@ namespace AICMod
                 if (item == null)
                 {
                     Debug.LogWarning($"[AICMod] Unknown item key: {itemKey}");
-                    ItemLog($"GiveItem UNKNOWN_ITEM key={itemKey}");
                     return false;
                 }
 
@@ -1294,28 +1286,13 @@ namespace AICMod
                 try { if (item.individual_grade) grade = 0; } catch { }
 
                 int added = InvokeOfficialGetItem(nm2d.IMNG, item, count, grade);
-                Debug.Log($"[AICMod] Official NelItemManager.getItem added {added} x {itemKey} (grade {grade})");
-                ItemLog($"GiveItem OK key={itemKey} count={count} grade={grade} added={added}");
                 return added > 0;
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[AICMod] GiveItem failed: {ex}");
-                ItemLog($"GiveItem EXCEPTION key={itemKey} ex={ex}");
                 return false;
             }
-        }
-
-        /// <summary>
-        /// 物品添加的落盘日志（不依赖 Unity Player.log，游戏重启也保留），用于排查获取物品问题
-        /// </summary>
-        private static void ItemLog(string msg)
-        {
-            try
-            {
-                File.AppendAllText(@"C:\AliceInCradle\aicmod_item.log", $"[{DateTime.Now:HH:mm:ss}] {msg}\r\n");
-            }
-            catch { }
         }
 
         /// <summary>

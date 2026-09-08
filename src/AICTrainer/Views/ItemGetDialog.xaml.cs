@@ -10,7 +10,6 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using AICShared;
-using AICTrainer.Services;
 using AICTrainer.ViewModels;
 
 namespace AICTrainer.Views
@@ -48,7 +47,6 @@ namespace AICTrainer.Views
 
         private void OnRemoteItemListReceived(List<ItemEntryDto> items)
         {
-            DiagLog.Write($"ItemGetDialog: OnRemoteItemListReceived -> reload with {(items?.Count ?? 0)} items");
             Dispatcher.Invoke(() =>
             {
                 LoadItems(items);
@@ -59,7 +57,6 @@ namespace AICTrainer.Views
         {
             if (e.PropertyName == nameof(MainViewModel.AllItems))
             {
-                DiagLog.Write($"ItemGetDialog: AllItems changed -> reload with {_vm.AllItems.Count} items");
                 Dispatcher.Invoke(() => LoadItems());
             }
         }
@@ -69,7 +66,6 @@ namespace AICTrainer.Views
             _allDisplayItems.Clear();
 
             items ??= _vm.AllItems;
-            DiagLog.Write($"ItemGetDialog: LoadItems using {(items?.Count ?? 0)} items");
 
             if (items != null && items.Count > 0)
             {

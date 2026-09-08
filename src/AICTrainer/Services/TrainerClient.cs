@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -168,7 +167,6 @@ namespace AICTrainer.Services
 
         public void AddItem(string itemKey, int count, int grade = 0)
         {
-            DiagLog.Write($"TrainerClient: AddItem send key={itemKey} count={count} grade={grade}");
             SendAction("AddItem", intParam: count, stringParam: itemKey, intParam2: grade);
         }
 
@@ -196,32 +194,18 @@ namespace AICTrainer.Services
                             }
                             else if (msg != null && msg.Type == "MapList")
                             {
-                                DiagLog.Write($"TrainerClient: MapList msg received, JsonData len={msg.JsonData?.Length ?? 0}");
                                 var mapList = JsonSerializer.Deserialize<MapListDto>(msg.JsonData ?? "", JsonOptions);
                                 if (mapList != null && mapList.Maps != null)
                                 {
-                                    DiagLog.Write($"TrainerClient: MapList deserialized {mapList.Maps.Count} maps");
-                                    var sample = string.Join("; ", mapList.Maps.Take(5).Select(m => $"{m.Key}={m.Name}"));
-                                    DiagLog.Write($"TrainerClient: MapList sample(5): {sample}");
                                     OnMapListReceived?.Invoke(mapList.Maps);
-                                }
-                                else
-                                {
-                                    DiagLog.Write("TrainerClient: MapList deserialize FAILED (null)");
                                 }
                             }
                             else if (msg != null && msg.Type == "ItemList")
                             {
-                                DiagLog.Write($"TrainerClient: ItemList msg received, JsonData len={msg.JsonData?.Length ?? 0}");
                                 var itemList = JsonSerializer.Deserialize<ItemListDto>(msg.JsonData ?? "", JsonOptions);
                                 if (itemList != null && itemList.Items != null)
                                 {
-                                    DiagLog.Write($"TrainerClient: ItemList deserialized {itemList.Items.Count} items");
                                     OnItemListReceived?.Invoke(itemList.Items);
-                                }
-                                else
-                                {
-                                    DiagLog.Write("TrainerClient: ItemList deserialize FAILED (null)");
                                 }
                             }
                         }

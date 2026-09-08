@@ -230,7 +230,6 @@ namespace AICTrainer.ViewModels
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    DiagLog.Write($"MainViewModel: OnItemListReceived -> AllItems = {(items?.Count ?? 0)}");
                     AllItems = items ?? new List<ItemEntryDto>();
                 });
             };
