@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -167,6 +168,7 @@ namespace AICTrainer.Services
 
         public void AddItem(string itemKey, int count, int grade = 0)
         {
+            DiagLog.Write($"TrainerClient: AddItem send key={itemKey} count={count} grade={grade}");
             SendAction("AddItem", intParam: count, stringParam: itemKey, intParam2: grade);
         }
 
@@ -199,6 +201,8 @@ namespace AICTrainer.Services
                                 if (mapList != null && mapList.Maps != null)
                                 {
                                     DiagLog.Write($"TrainerClient: MapList deserialized {mapList.Maps.Count} maps");
+                                    var sample = string.Join("; ", mapList.Maps.Take(5).Select(m => $"{m.Key}={m.Name}"));
+                                    DiagLog.Write($"TrainerClient: MapList sample(5): {sample}");
                                     OnMapListReceived?.Invoke(mapList.Maps);
                                 }
                                 else
