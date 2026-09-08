@@ -296,6 +296,7 @@ namespace AICShared
         public int IntParam;
         public float FloatParam;
         public string StringParam = string.Empty;
+        public int IntParam2; // 附加整型参数（如获取物品的星级 grade 0-4）
     }
 
     [Serializable]

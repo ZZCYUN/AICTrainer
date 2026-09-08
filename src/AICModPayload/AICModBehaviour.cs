@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using AICShared;
 using m2d;
@@ -557,7 +558,7 @@ namespace AICMod
                     case "AddItem":
                         if (!string.IsNullOrEmpty(act.StringParam))
                         {
-                            GiveItem(act.StringParam, act.IntParam > 0 ? act.IntParam : 1);
+                            GiveItem(act.StringParam, act.IntParam > 0 ? act.IntParam : 1, act.IntParam2);
                         }
                         break;
 
@@ -1096,8 +1097,44 @@ namespace AICMod
                 case "ENHANCER": return "强化";
                 case "BOMB": return "炸弹";
                 case "BOTTLE": return "瓶子";
+                case "CACHE": return "缓存/内部";
                 default: return category;
             }
+        }
+
+        /// <summary>
+        /// 物品 category 是位标志组合（如 果实+回复HP），收集全部命中的分类标志
+        /// </summary>
+        public static List<string> GetItemCategories(NelItem itm, bool isCache)
+        {
+            var list = new List<string>();
+            if (isCache)
+            {
+                list.Add("CACHE");
+                return list;
+            }
+            var c = itm.category;
+            if ((c & NelItem.CATEG.FOOD) != 0) list.Add("FOOD");
+            if ((c & NelItem.CATEG.FRUIT) != 0) list.Add("FRUIT");
+            if ((c & NelItem.CATEG.MTR) != 0) list.Add("MTR");
+            if ((c & NelItem.CATEG.CURE_HP) != 0) list.Add("CURE_HP");
+            if ((c & NelItem.CATEG.CURE_MP) != 0) list.Add("CURE_MP");
+            if ((c & NelItem.CATEG.CURE_EP) != 0) list.Add("CURE_EP");
+            if ((c & NelItem.CATEG.CURE_MP_CRACK) != 0) list.Add("CURE_MP_CRACK");
+            if ((c & NelItem.CATEG.SER_APPLY) != 0) list.Add("SER_APPLY");
+            if ((c & NelItem.CATEG.SER_CURE) != 0) list.Add("SER_CURE");
+            if ((c & NelItem.CATEG.BOMB) != 0) list.Add("BOMB");
+            if ((c & NelItem.CATEG.TOOL) != 0) list.Add("TOOL");
+            if ((c & NelItem.CATEG.FOR_FISHING) != 0) list.Add("FOR_FISHING");
+            if ((c & NelItem.CATEG.WATER) != 0) list.Add("WATER");
+            if ((c & NelItem.CATEG.SPECIAL) != 0) list.Add("SPECIAL");
+            if ((c & NelItem.CATEG.SPECIAL_USE) != 0) list.Add("SPECIAL_USE");
+            if ((c & NelItem.CATEG.ENHANCER) != 0) list.Add("ENHANCER");
+            if ((c & NelItem.CATEG.ANC) != 0) list.Add("ANC");
+            if ((c & NelItem.CATEG.DUST) != 0) list.Add("DUST");
+            if ((c & NelItem.CATEG.BOTTLE) != 0) list.Add("BOTTLE");
+            if ((c & NelItem.CATEG.INDIVIDUAL_GRADE) != 0) list.Add("INDIVIDUAL_GRADE");
+            return list;
         }
 
         /// <summary>
@@ -1158,8 +1195,17 @@ namespace AICMod
                     try { isCache = itm.is_cache_item; } catch { }
 
                     string cat = "OTHER";
-                    try { cat = isCache ? "CACHE" : itm.category.ToString(); } catch { }
-                    string catZh = isCache ? "缓存/内部" : GetItemCategoryChineseName(cat);
+                    string catZh = "其他";
+                    try
+                    {
+                        var cats = GetItemCategories(itm, isCache);
+                        if (cats.Count > 0)
+                        {
+                            cat = string.Join(",", cats);
+                            catZh = string.Join(" · ", cats.Select(GetItemCategoryChineseName));
+                        }
+                    }
+                    catch { }
 
                     int owned = -1;
                     try
@@ -1221,9 +1267,10 @@ namespace AICMod
 
         /// <summary>
         /// 获取任意物品：调用游戏官方 debug 入包方法 NelItemManager.getItem
-        /// （官方 GET_ALL_ITEM 调试命令同款实现），而非自行操作 ItemStorage
+        /// （官方 GET_ALL_ITEM 调试命令同款实现），而非自行操作 ItemStorage。
+        /// grade 0-4 对应 ★1-★5；individual_grade 物品（魔杖/鱼竿等）强制 ★1
         /// </summary>
-        public static bool GiveItem(string itemKey, int count)
+        public static bool GiveItem(string itemKey, int count, int grade = 0)
         {
             var nm2d = GetM2D();
             if (nm2d == null || nm2d.IMNG == null || string.IsNullOrEmpty(itemKey) || count <= 0) return false;
@@ -1237,8 +1284,11 @@ namespace AICMod
                     return false;
                 }
 
-                int added = InvokeOfficialGetItem(nm2d.IMNG, item, count);
-                Debug.Log($"[AICMod] Official NelItemManager.getItem added {added} x {itemKey}");
+                grade = Mathf.Clamp(grade, 0, 4);
+                try { if (item.individual_grade) grade = 0; } catch { }
+
+                int added = InvokeOfficialGetItem(nm2d.IMNG, item, count, grade);
+                Debug.Log($"[AICMod] Official NelItemManager.getItem added {added} x {itemKey} (grade {grade})");
                 return added > 0;
             }
             catch (Exception ex)
@@ -1251,19 +1301,19 @@ namespace AICMod
         /// <summary>
         /// 反射调用官方 NelItemManager.getItem，多签名回退防止版本升级签名漂移导致 JIT 异常
         /// </summary>
-        private static int InvokeOfficialGetItem(NelItemManager imng, NelItem item, int count)
+        private static int InvokeOfficialGetItem(NelItemManager imng, NelItem item, int count, int grade)
         {
             var t = typeof(NelItemManager);
             var m7 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool), typeof(bool), typeof(bool), typeof(bool) });
-            if (m7 != null) return (int)m7.Invoke(imng, new object[] { item, count, 0, false, false, false, false });
+            if (m7 != null) return (int)m7.Invoke(imng, new object[] { item, count, grade, false, false, false, false });
             var m6 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool), typeof(bool), typeof(bool) });
-            if (m6 != null) return (int)m6.Invoke(imng, new object[] { item, count, 0, false, false, false });
+            if (m6 != null) return (int)m6.Invoke(imng, new object[] { item, count, grade, false, false, false });
             var m5 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool), typeof(bool) });
-            if (m5 != null) return (int)m5.Invoke(imng, new object[] { item, count, 0, false, false });
+            if (m5 != null) return (int)m5.Invoke(imng, new object[] { item, count, grade, false, false });
             var m4 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int), typeof(bool) });
-            if (m4 != null) return (int)m4.Invoke(imng, new object[] { item, count, 0, false });
+            if (m4 != null) return (int)m4.Invoke(imng, new object[] { item, count, grade, false });
             var m3 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int), typeof(int) });
-            if (m3 != null) return (int)m3.Invoke(imng, new object[] { item, count, 0 });
+            if (m3 != null) return (int)m3.Invoke(imng, new object[] { item, count, grade });
             var m2 = t.GetMethod("getItem", new[] { typeof(NelItem), typeof(int) });
             if (m2 != null) return (int)m2.Invoke(imng, new object[] { item, count });
             var m1 = t.GetMethod("getItem", new[] { typeof(NelItem) });

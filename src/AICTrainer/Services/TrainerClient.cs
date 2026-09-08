@@ -117,7 +117,7 @@ namespace AICTrainer.Services
             }
         }
 
-        public void SendAction(string actionName, int intParam = 0, float floatParam = 0f, string stringParam = "")
+        public void SendAction(string actionName, int intParam = 0, float floatParam = 0f, string stringParam = "", int intParam2 = 0)
         {
             if (!IsConnected || _writer == null) return;
 
@@ -128,7 +128,8 @@ namespace AICTrainer.Services
                     ActionName = actionName,
                     IntParam = intParam,
                     FloatParam = floatParam,
-                    StringParam = stringParam
+                    StringParam = stringParam,
+                    IntParam2 = intParam2
                 };
                 var msg = new IpcMessage
                 {
@@ -164,9 +165,9 @@ namespace AICTrainer.Services
             SendAction("GetItemList");
         }
 
-        public void AddItem(string itemKey, int count)
+        public void AddItem(string itemKey, int count, int grade = 0)
         {
-            SendAction("AddItem", intParam: count, stringParam: itemKey);
+            SendAction("AddItem", intParam: count, stringParam: itemKey, intParam2: grade);
         }
 
         private void ListenLoop(NetworkStream stream, CancellationToken token)

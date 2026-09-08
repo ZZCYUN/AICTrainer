@@ -224,11 +224,15 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="数量:" FontSize="12" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <TextBox x:Name="CountBox" Text="1" Width="48" Height="26" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                    <TextBox x:Name="CountBox" Text="1" Width="44" Height="26" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                              Background="#181828" BorderBrush="#2A2A3E" BorderThickness="1" Foreground="{StaticResource TextPrimary}"
                              CaretBrush="{StaticResource AccentCyan}" FontSize="12" MaxLength="4" PreviewTextInput="OnCountPreviewTextInput"/>
-                    <TextBlock Text="💡 双击列表项或点击「获取」，将调用游戏官方 debug 的 getItem 加入背包"
-                               FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    <TextBlock Text="星级:" FontSize="12" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                    <RadioButton Content="★1" GroupName="GradeFilter" Style="{StaticResource FilterChipButton}" IsChecked="True" Checked="OnGradeFilterChanged" Tag="0" VerticalAlignment="Center"/>
+                    <RadioButton Content="★2" GroupName="GradeFilter" Style="{StaticResource FilterChipButton}" Checked="OnGradeFilterChanged" Tag="1" VerticalAlignment="Center"/>
+                    <RadioButton Content="★3" GroupName="GradeFilter" Style="{StaticResource FilterChipButton}" Checked="OnGradeFilterChanged" Tag="2" VerticalAlignment="Center"/>
+                    <RadioButton Content="★4" GroupName="GradeFilter" Style="{StaticResource FilterChipButton}" Checked="OnGradeFilterChanged" Tag="3" VerticalAlignment="Center"/>
+                    <RadioButton Content="★5" GroupName="GradeFilter" Style="{StaticResource FilterChipButton}" Checked="OnGradeFilterChanged" Tag="4" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button Content="🔄 刷新" Width="70" Height="30" Background="#1E1E2E" Foreground="{StaticResource TextSecondary}" BorderBrush="#383854" BorderThickness="1" Cursor="Hand" Click="OnRefreshItemsClick" Margin="0,0,8,0">

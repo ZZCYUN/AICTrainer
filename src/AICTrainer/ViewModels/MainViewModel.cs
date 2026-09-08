@@ -1753,10 +1753,10 @@ namespace AICTrainer.ViewModels
             dlg.ShowDialog();
         }
 
-        public void ExecuteAddItem(string itemKey, int count)
+        public void ExecuteAddItem(string itemKey, int count, int grade = 0)
         {
             if (string.IsNullOrEmpty(itemKey) || count <= 0) return;
-            Client.AddItem(itemKey, count);
+            Client.AddItem(itemKey, count, grade);
         }
 
         public List<MapEntryDto> FallbackLoadGameMaps()

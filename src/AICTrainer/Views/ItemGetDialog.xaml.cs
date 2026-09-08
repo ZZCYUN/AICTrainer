@@ -21,6 +21,12 @@ namespace AICTrainer.Views
         private readonly List<ItemDisplayItem> _allDisplayItems = new List<ItemDisplayItem>();
         private readonly ObservableCollection<ItemDisplayItem> _filteredItems = new ObservableCollection<ItemDisplayItem>();
         private string _selectedCategoryFilter = "ALL";
+        private int _selectedGrade;
+
+        private static readonly HashSet<string> KnownChipCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "MTR", "FOOD", "FRUIT", "CURE_HP", "CURE_MP", "TOOL", "BOMB", "FOR_FISHING", "SPECIAL"
+        };
 
         public ItemGetDialog(MainViewModel vm)
         {
@@ -91,20 +97,16 @@ namespace AICTrainer.Views
 
             var filtered = _allDisplayItems.AsEnumerable();
 
-            // 1. 分类筛选
+            // 1. 分类筛选：物品可能属于多个分类（位标志组合），只要命中任一即显示
             if (!string.Equals(_selectedCategoryFilter, "ALL", StringComparison.OrdinalIgnoreCase))
             {
                 if (string.Equals(_selectedCategoryFilter, "OTHER", StringComparison.OrdinalIgnoreCase))
                 {
-                    var knownCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        "MTR", "FOOD", "FRUIT", "CURE_HP", "CURE_MP", "TOOL", "BOMB", "FOR_FISHING", "SPECIAL"
-                    };
-                    filtered = filtered.Where(x => !knownCategories.Contains(x.Category));
+                    filtered = filtered.Where(x => !x.Categories.Any(c => KnownChipCategories.Contains(c)));
                 }
                 else
                 {
-                    filtered = filtered.Where(x => string.Equals(x.Category, _selectedCategoryFilter, StringComparison.OrdinalIgnoreCase));
+                    filtered = filtered.Where(x => x.Categories.Contains(_selectedCategoryFilter, StringComparer.OrdinalIgnoreCase));
                 }
             }
 
@@ -154,6 +156,11 @@ namespace AICTrainer.Views
             return 1;
         }
 
+        private int GetCurrentGrade()
+        {
+            return _selectedGrade;
+        }
+
         private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
         {
             ApplyFilter();
@@ -193,6 +200,14 @@ namespace AICTrainer.Views
             {
                 _selectedCategoryFilter = tag;
                 ApplyFilter();
+            }
+        }
+
+        private void OnGradeFilterChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is RadioButton rb && int.TryParse(rb.Tag as string, out int grade))
+            {
+                _selectedGrade = grade;
             }
         }
 
@@ -240,7 +255,8 @@ namespace AICTrainer.Views
             if (string.IsNullOrEmpty(key)) return;
 
             int count = GetCurrentCount();
-            _vm.ExecuteAddItem(key, count);
+            int grade = GetCurrentGrade();
+            _vm.ExecuteAddItem(key, count, grade);
 
             // 获取后刷新列表，让持有数实时更新（弹窗保持打开，便于连续获取多种物品）
             try
@@ -271,6 +287,11 @@ namespace AICTrainer.Views
         public string Category { get; set; } = "OTHER";
         public string CategoryZh { get; set; } = "其他";
         public int OwnedCount { get; set; } = -1;
+
+        // 物品可能属于多个分类（位标志组合，Category 逗号分隔），用于筛选
+        public string[] Categories => string.IsNullOrEmpty(Category)
+            ? new[] { "OTHER" }
+            : Category.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
         public string PrimaryDisplayName => !string.IsNullOrEmpty(Name) ? Name : Key;
         public string KeyDisplay => $"标识: {Key}";
