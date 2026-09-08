@@ -230,6 +230,7 @@ namespace AICTrainer.ViewModels
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    DiagLog.Write($"MainViewModel: OnItemListReceived -> AllItems = {(items?.Count ?? 0)}");
                     AllItems = items ?? new List<ItemEntryDto>();
                 });
             };
@@ -370,7 +371,17 @@ namespace AICTrainer.ViewModels
             }
         }
         public List<MapEntryDto> AllMaps { get; private set; } = new List<MapEntryDto>();
-        public List<ItemEntryDto> AllItems { get; private set; } = new List<ItemEntryDto>();
+
+        private List<ItemEntryDto> _allItems = new List<ItemEntryDto>();
+        public List<ItemEntryDto> AllItems
+        {
+            get => _allItems;
+            set
+            {
+                _allItems = value ?? new List<ItemEntryDto>();
+                OnPropertyChanged();
+            }
+        }
 
         public string CurrentHpText { get => _currentHpText; set { _currentHpText = value; OnPropertyChanged(); } }
         public string CurrentMpText { get => _currentMpText; set { _currentMpText = value; OnPropertyChanged(); } }

@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using AICShared;
+using AICTrainer.Services;
 using AICTrainer.ViewModels;
 
 namespace AICTrainer.Views
@@ -29,9 +30,11 @@ namespace AICTrainer.Views
             ItemListBox.ItemsSource = _filteredItems;
 
             _vm.Client.OnItemListReceived += OnRemoteItemListReceived;
+            _vm.PropertyChanged += OnVmPropertyChanged;
             Closed += (s, e) =>
             {
                 _vm.Client.OnItemListReceived -= OnRemoteItemListReceived;
+                _vm.PropertyChanged -= OnVmPropertyChanged;
             };
 
             LoadItems();
@@ -39,17 +42,28 @@ namespace AICTrainer.Views
 
         private void OnRemoteItemListReceived(List<ItemEntryDto> items)
         {
+            DiagLog.Write($"ItemGetDialog: OnRemoteItemListReceived -> reload with {(items?.Count ?? 0)} items");
             Dispatcher.Invoke(() =>
             {
-                LoadItems();
+                LoadItems(items);
             });
         }
 
-        private void LoadItems()
+        private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(MainViewModel.AllItems))
+            {
+                DiagLog.Write($"ItemGetDialog: AllItems changed -> reload with {_vm.AllItems.Count} items");
+                Dispatcher.Invoke(() => LoadItems());
+            }
+        }
+
+        private void LoadItems(List<ItemEntryDto>? items = null)
         {
             _allDisplayItems.Clear();
 
-            var items = _vm.AllItems;
+            items ??= _vm.AllItems;
+            DiagLog.Write($"ItemGetDialog: LoadItems using {(items?.Count ?? 0)} items");
 
             if (items != null && items.Count > 0)
             {

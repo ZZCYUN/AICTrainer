@@ -201,10 +201,16 @@ namespace AICTrainer.Services
                             }
                             else if (msg != null && msg.Type == "ItemList")
                             {
-                                var itemList = JsonSerializer.Deserialize<ItemListDto>(msg.JsonData, JsonOptions);
+                                DiagLog.Write($"TrainerClient: ItemList msg received, JsonData len={msg.JsonData?.Length ?? 0}");
+                                var itemList = JsonSerializer.Deserialize<ItemListDto>(msg.JsonData ?? "", JsonOptions);
                                 if (itemList != null && itemList.Items != null)
                                 {
+                                    DiagLog.Write($"TrainerClient: ItemList deserialized {itemList.Items.Count} items");
                                     OnItemListReceived?.Invoke(itemList.Items);
+                                }
+                                else
+                                {
+                                    DiagLog.Write("TrainerClient: ItemList deserialize FAILED (null)");
                                 }
                             }
                         }
