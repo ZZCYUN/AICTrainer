@@ -1560,7 +1560,7 @@ namespace AICTrainer.ViewModels
                 StatusColor = "#FFAA00";
 
                 var proc = await ProcessMonitor.WaitForGameWindowAsync(timeoutSeconds: 60);
-                if (proc == null || proc.HasExited)
+                if (!ProcessMonitor.IsProcessAlive(proc))
                 {
                     if (IsGameRunning)
                     {
@@ -1573,7 +1573,7 @@ namespace AICTrainer.ViewModels
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 while (sw.Elapsed.TotalSeconds < 30)
                 {
-                    if (proc.HasExited)
+                    if (!ProcessMonitor.IsProcessAlive(proc))
                     {
                         StatusText = "游戏已退出，自动注入已取消";
                         StatusColor = "#FF5555";
@@ -1585,7 +1585,7 @@ namespace AICTrainer.ViewModels
                         StatusText = "游戏引擎与主窗口已就绪，正在自动注入并建立连接...";
                         StatusColor = "#00FFCC";
                         await Task.Delay(800);
-                        if (!proc.HasExited && !IsInjected)
+                        if (ProcessMonitor.IsProcessAlive(proc) && !IsInjected)
                         {
                             await InjectAndConnectAsync();
                         }
@@ -1600,7 +1600,7 @@ namespace AICTrainer.ViewModels
                     await Task.Delay(300);
                 }
 
-                if (!proc.HasExited && !IsInjected)
+                if (ProcessMonitor.IsProcessAlive(proc) && !IsInjected)
                 {
                     StatusText = "等待就绪超时，正在尝试直接注入...";
                     await InjectAndConnectAsync();
