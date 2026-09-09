@@ -1155,21 +1155,24 @@ namespace AICMod
                 }
 
                 var storages = new List<ItemStorage>();
+                var seenStorages = new HashSet<ItemStorage>();
                 var nm2d = GetM2D();
                 if (nm2d?.IMNG != null)
                 {
                     try
                     {
+                        // getInventoryArray() 在房屋可访问时已包含 StHouseInventory，
+                        // 按引用去重，避免房屋存储的持有数被重复累加（导致显示多于实际入包数量）
                         foreach (var st in nm2d.IMNG.getInventoryArray())
                         {
-                            if (st != null) storages.Add(st);
+                            if (st != null && seenStorages.Add(st)) storages.Add(st);
                         }
                     }
                     catch { }
                     try
                     {
                         var house = nm2d.IMNG.getHouseInventory();
-                        if (house != null) storages.Add(house);
+                        if (house != null && seenStorages.Add(house)) storages.Add(house);
                     }
                     catch { }
                 }
