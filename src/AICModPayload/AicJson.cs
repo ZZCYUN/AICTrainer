@@ -82,5 +82,26 @@ namespace AICMod
             sb.Append("]}");
             return sb.ToString();
         }
+
+        public static string EffectList(IList<EffectEntryDto> effects)
+        {
+            var sb = new StringBuilder();
+            sb.Append("{\"Effects\":[");
+            if (effects != null)
+            {
+                for (int i = 0; i < effects.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    var e = effects[i];
+                    sb.Append("{\"Id\":").Append(e.Id)
+                      .Append(",\"Key\":").Append(Str(e.Key))
+                      .Append(",\"Name\":").Append(Str(e.Name))
+                      .Append(",\"MaxLevel\":").Append(e.MaxLevel)
+                      .Append('}');
+                }
+            }
+            sb.Append("]}");
+            return sb.ToString();
+        }
     }
 }

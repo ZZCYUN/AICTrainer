@@ -562,6 +562,19 @@ namespace AICMod
                         }
                         break;
 
+                    case "GetEffectList":
+                        SendEffectList();
+                        break;
+
+                    case "ApplyEffect":
+                        if (act.IntParam >= 0)
+                        {
+                            int level = Mathf.Clamp(act.IntParam2, 1, 99);
+                            int seconds = act.IntParam3;
+                            ApplyEffect(act.IntParam, level, seconds);
+                        }
+                        break;
+
                     case "full_heal":
                         if (pr != null)
                         {
@@ -1263,6 +1276,120 @@ namespace AICMod
             catch (Exception ex)
             {
                 Debug.LogWarning("[AICMod] SendItemList failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 各 SER 效果的最高内部等级（按 M2SerItem.LevelCheckIndividual 的分级阈值逆向整理）。
+        /// 下标 = SER 枚举值；0 = 无分级（内部 level 恒 0，只显示原名）；
+        /// N>0 = 有 N 个内部等级（1..N），游戏 UI 显示为 Lv.(level+1)，即 Lv.2..Lv.N+1
+        /// （如 SEXERCISE=1 → 唯一的等级显示"Lv.2"；STONE=3 → Lv.2/Lv.3/Lv.4）。
+        /// ORGASM_AFTER(25) 特殊：level 直接取调用者传入的 max_level，视为无上限(99)。
+        /// </summary>
+        private static readonly int[] EffectMaxLevels = new int[]
+        {
+            /*0 */ 0,  /*1 */ 0,  /*2 */ 1,  /*3 */ 2,  /*4 */ 1,  /*5 */ 2,  /*6 */ 0,  /*7 */ 2,
+            /*8 */ 0,  /*9 */ 0,  /*10*/ 0,  /*11*/ 0,  /*12*/ 1,  /*13*/ 0,  /*14*/ 1,  /*15*/ 0,
+            /*16*/ 0,  /*17*/ 0,  /*18*/ 0,  /*19*/ 0,  /*20*/ 0,  /*21*/ 0,  /*22*/ 0,  /*23*/ 0,
+            /*24*/ 0,  /*25*/ 99, /*26*/ 0,  /*27*/ 0,  /*28*/ 2,  /*29*/ 2,  /*30*/ 8,  /*31*/ 0,
+            /*32*/ 8,  /*33*/ 0,  /*34*/ 98, /*35*/ 3,  /*36*/ 0,  /*37*/ 1,  /*38*/ 0,  /*39*/ 0,
+            /*40*/ 0,  /*41*/ 4,  /*42*/ 4,  /*43*/ 0
+        };
+
+        /// <summary>
+        /// 枚举全部状态效果：SER 枚举本身即全量（0..43），每个成员是独立效果。
+        /// 跳过 __TEMPORARY_REMOVED（13，占位无行为）与 __MAX（44，哨兵）。
+        /// 中文名走游戏本地化键 SerTitle_&lt;小写枚举名&gt;，缺失回退枚举名。
+        /// </summary>
+        public static EffectListDto GetEffectList()
+        {
+            var list = new List<EffectEntryDto>();
+            try
+            {
+                int maxId = (int)SER.__MAX;
+                for (int i = 0; i < maxId; i++)
+                {
+                    if (i == (int)SER.__TEMPORARY_REMOVED) continue;
+
+                    SER ser = (SER)i;
+                    string key = ser.ToString();
+                    string name = key;
+                    try
+                    {
+                        string localized = TX.Get("SerTitle_" + key.ToLower());
+                        if (!string.IsNullOrWhiteSpace(localized)) name = localized;
+                    }
+                    catch { }
+
+                    list.Add(new EffectEntryDto
+                    {
+                        Id = i,
+                        Key = key,
+                        Name = name,
+                        MaxLevel = (i >= 0 && i < EffectMaxLevels.Length) ? EffectMaxLevels[i] : 0
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] GetEffectList error: " + ex.Message);
+            }
+            return new EffectListDto { Effects = list };
+        }
+
+        public static void SendEffectList()
+        {
+            try
+            {
+                var effectList = GetEffectList();
+                IpcServer.Instance.SendEffectList(effectList);
+                Debug.Log($"[AICMod] Sent {effectList.Effects.Count} effects to client");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] SendEffectList failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 给当前玩家添加一个状态效果：走官方 Ser.Add(SER, 帧, max_level)（进图硬性限制，同物品）。
+        /// 注意：游戏 M2SerItem.level 字段是 0 索引（0 = 基础态，1 = 第二级…），UI 标题显示 Lv.(level+1)，
+        /// 因此训练器行号"Lv.N" 对应的内部 level = N-1，否则每个等级都会在游戏里显示成高一级。
+        /// 等级按各效果的真实上限 clamp（见 EffectMaxLevels），并用游戏同款累积路径（LevelCheck）
+        /// 把阈值型效果抬到目标等级（如 STONE Lv.3 需 level_count 累积到 5）。
+        /// ORGASM_AFTER 是 "level = max_level" 的特殊效果，直接以目标内部等级作为上限传入。
+        /// 时长参数为秒，内部 ×60 转帧；&lt;=0 用游戏默认（120帧 = 2秒）。
+        /// </summary>
+        public static void ApplyEffect(int serId, int level, int seconds)
+        {
+            try
+            {
+                if (serId < 0 || serId >= (int)SER.__MAX || serId == (int)SER.__TEMPORARY_REMOVED) return;
+                var pr = GetPlayer();
+                if (pr?.Ser == null) return;
+
+                int maxLevel = (serId >= 0 && serId < EffectMaxLevels.Length) ? EffectMaxLevels[serId] : 0;
+
+                // 训练器行号"Lv.N"（N=内部level+1） → 内部 level = N-1（0 索引）
+                int target = Mathf.Clamp(level, 1, maxLevel + 1) - 1;
+
+                // ORGASM_AFTER：level 直接 = 传入的 max_level，故上限取目标内部等级
+                int addMaxLevel = serId == (int)SER.ORGASM_AFTER ? target : maxLevel;
+
+                int frames = seconds > 0 ? seconds * 60 : -1;
+                var item = pr.Ser.Add((SER)serId, frames, addMaxLevel);
+                if (item != null)
+                {
+                    // 阈值型效果需多次累积 level_count 才会升到目标等级，循环抬级直到达到
+                    for (int i = 0; i < 300 && item.level < target; i++)
+                    {
+                        item.LevelCheck(1, maxLevel);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] ApplyEffect error: " + ex.Message);
             }
         }
 

@@ -127,6 +127,7 @@ namespace AICTrainer.ViewModels
             InjectCommand = new RelayCommand(async () => await InjectAndConnectAsync());
             OpenMapSelectCommand = new RelayCommand(OpenMapSelectDialog);
             OpenItemGetCommand = new RelayCommand(OpenItemGetDialog);
+            OpenEffectGetCommand = new RelayCommand(OpenEffectGetDialog);
             ToggleFavCommand = new RelayCommand<string>(key => ToggleFavorite(key));
 
             // 单次更改数值动作命令
@@ -234,6 +235,14 @@ namespace AICTrainer.ViewModels
                 });
             };
 
+            Client.OnEffectListReceived += effects =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    AllEffects = effects ?? new List<EffectEntryDto>();
+                });
+            };
+
             Client.OnDisconnected += () =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
@@ -332,6 +341,7 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged(nameof(IsInMap));
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
                 OnPropertyChanged(nameof(ItemGetButtonVis));
+                OnPropertyChanged(nameof(EffectGetButtonVis));
             }
         }
         public bool IsGameReady
@@ -344,6 +354,7 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged(nameof(IsInMap));
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
                 OnPropertyChanged(nameof(ItemGetButtonVis));
+                OnPropertyChanged(nameof(EffectGetButtonVis));
             }
         }
 
@@ -354,6 +365,7 @@ namespace AICTrainer.ViewModels
 
         public Visibility ChangeMapButtonVis => IsInMap ? Visibility.Visible : Visibility.Collapsed;
         public Visibility ItemGetButtonVis => IsInMap ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility EffectGetButtonVis => IsInMap ? Visibility.Visible : Visibility.Collapsed;
 
         public string StatusText { get => _statusText; set { _statusText = value; OnPropertyChanged(); } }
         public string StatusColor { get => _statusColor; set { _statusColor = value; OnPropertyChanged(); } }
@@ -367,6 +379,7 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged(nameof(IsInMap));
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
                 OnPropertyChanged(nameof(ItemGetButtonVis));
+                OnPropertyChanged(nameof(EffectGetButtonVis));
             }
         }
         public List<MapEntryDto> AllMaps { get; private set; } = new List<MapEntryDto>();
@@ -378,6 +391,17 @@ namespace AICTrainer.ViewModels
             set
             {
                 _allItems = value ?? new List<ItemEntryDto>();
+                OnPropertyChanged();
+            }
+        }
+
+        private List<EffectEntryDto> _allEffects = new List<EffectEntryDto>();
+        public List<EffectEntryDto> AllEffects
+        {
+            get => _allEffects;
+            set
+            {
+                _allEffects = value ?? new List<EffectEntryDto>();
                 OnPropertyChanged();
             }
         }
@@ -1522,6 +1546,7 @@ namespace AICTrainer.ViewModels
         public ICommand InjectCommand { get; }
         public ICommand OpenMapSelectCommand { get; }
         public ICommand OpenItemGetCommand { get; }
+        public ICommand OpenEffectGetCommand { get; }
         public ICommand ToggleFavCommand { get; }
 
         public ICommand ApplyHpCommand { get; }
@@ -1780,6 +1805,30 @@ namespace AICTrainer.ViewModels
         {
             if (string.IsNullOrEmpty(itemKey) || count <= 0) return;
             Client.AddItem(itemKey, count, grade);
+        }
+
+        public void OpenEffectGetDialog()
+        {
+            if (!IsGameReady || string.IsNullOrEmpty(CurrentMapText) || CurrentMapText == "未在游戏中" || CurrentMapText == "标题画面 / 菜单" || CurrentMapText == "关卡载入中")
+            {
+                MessageBox.Show("请先载入游戏存档并进入关卡地图后再添加效果！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // 每次打开都向 MOD 端请求最新效果列表（SER 枚举全量 + 游戏内中文名）
+            Client.RequestEffectList();
+
+            var dlg = new AICTrainer.Views.EffectGetDialog(this)
+            {
+                Owner = Application.Current.MainWindow
+            };
+            dlg.ShowDialog();
+        }
+
+        public void ExecuteApplyEffect(int serId, int level, int seconds)
+        {
+            if (serId < 0) return;
+            Client.ApplyEffect(serId, level, seconds);
         }
 
         public List<MapEntryDto> FallbackLoadGameMaps()

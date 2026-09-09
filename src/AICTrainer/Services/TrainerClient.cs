@@ -29,6 +29,7 @@ namespace AICTrainer.Services
         public event Action<GameStateDto>? OnStateReceived;
         public event Action<System.Collections.Generic.List<MapEntryDto>>? OnMapListReceived;
         public event Action<System.Collections.Generic.List<ItemEntryDto>>? OnItemListReceived;
+        public event Action<System.Collections.Generic.List<EffectEntryDto>>? OnEffectListReceived;
         public event Action? OnConnected;
         public event Action? OnDisconnected;
 
@@ -117,7 +118,7 @@ namespace AICTrainer.Services
             }
         }
 
-        public void SendAction(string actionName, int intParam = 0, float floatParam = 0f, string stringParam = "", int intParam2 = 0)
+        public void SendAction(string actionName, int intParam = 0, float floatParam = 0f, string stringParam = "", int intParam2 = 0, int intParam3 = 0)
         {
             if (!IsConnected || _writer == null) return;
 
@@ -129,7 +130,8 @@ namespace AICTrainer.Services
                     IntParam = intParam,
                     FloatParam = floatParam,
                     StringParam = stringParam,
-                    IntParam2 = intParam2
+                    IntParam2 = intParam2,
+                    IntParam3 = intParam3
                 };
                 var msg = new IpcMessage
                 {
@@ -170,6 +172,16 @@ namespace AICTrainer.Services
             SendAction("AddItem", intParam: count, stringParam: itemKey, intParam2: grade);
         }
 
+        public void RequestEffectList()
+        {
+            SendAction("GetEffectList");
+        }
+
+        public void ApplyEffect(int serId, int level, int seconds)
+        {
+            SendAction("ApplyEffect", intParam: serId, intParam2: level, intParam3: seconds);
+        }
+
         private void ListenLoop(NetworkStream stream, CancellationToken token)
         {
             try
@@ -206,6 +218,14 @@ namespace AICTrainer.Services
                                 if (itemList != null && itemList.Items != null)
                                 {
                                     OnItemListReceived?.Invoke(itemList.Items);
+                                }
+                            }
+                            else if (msg != null && msg.Type == "EffectList")
+                            {
+                                var effectList = JsonSerializer.Deserialize<EffectListDto>(msg.JsonData ?? "", JsonOptions);
+                                if (effectList != null && effectList.Effects != null)
+                                {
+                                    OnEffectListReceived?.Invoke(effectList.Effects);
                                 }
                             }
                         }

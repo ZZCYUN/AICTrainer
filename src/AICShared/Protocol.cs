@@ -305,6 +305,7 @@ namespace AICShared
         public float FloatParam;
         public string StringParam = string.Empty;
         public int IntParam2; // 附加整型参数（如获取物品的星级 grade 0-4）
+        public int IntParam3; // 附加整型参数2（如添加效果的时长，单位秒）
     }
 
     [Serializable]
@@ -336,5 +337,20 @@ namespace AICShared
     public class ItemListDto
     {
         public System.Collections.Generic.List<ItemEntryDto> Items = new System.Collections.Generic.List<ItemEntryDto>();
+    }
+
+    [Serializable]
+    public class EffectEntryDto
+    {
+        public int Id;                         // SER 枚举值 0-43
+        public string Key = string.Empty;      // SER 枚举名，如 POISON
+        public string Name = string.Empty;     // 效果中文名（游戏内本地化），无则回退枚举名
+        public int MaxLevel = 1;               // 该效果的最高等级（游戏分级阈值上限，各效果不同）
+    }
+
+    [Serializable]
+    public class EffectListDto
+    {
+        public System.Collections.Generic.List<EffectEntryDto> Effects = new System.Collections.Generic.List<EffectEntryDto>();
     }
 }

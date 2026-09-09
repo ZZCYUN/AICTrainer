@@ -671,6 +671,11 @@
                                         Visibility="{Binding InjectButtonVis}"
                                         Margin="0,0,8,0"
                                         Click="OnInjectClick"/>
+                                <Button Content="✨ 添加效果" Style="{StaticResource NeonButton}"
+                                        Visibility="{Binding EffectGetButtonVis}"
+                                        Margin="0,0,8,0"
+                                        Command="{Binding OpenEffectGetCommand}"
+                                        ToolTip="调用游戏官方 Ser.Add 给当前角色添加任意状态效果（含时长与等级，仅限进入关卡地图后使用）"/>
                                 <Button Content="🎒 获取物品" Style="{StaticResource NeonButton}"
                                         Visibility="{Binding ItemGetButtonVis}"
                                         Margin="0,0,8,0"

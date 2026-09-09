@@ -143,6 +143,35 @@ namespace AICMod
             }
         }
 
+        public void SendEffectList(EffectListDto effectList)
+        {
+            if (!IsClientConnected || _writer == null) return;
+
+            try
+            {
+                string listJson = AicJson.EffectList(effectList.Effects);
+                var msg = new IpcMessage
+                {
+                    Type = "EffectList",
+                    JsonData = listJson
+                };
+                string msgJson = JsonUtility.ToJson(msg);
+
+                lock (_writeLock)
+                {
+                    if (_writer != null && _activeClient != null && _activeClient.Connected)
+                    {
+                        _writer.WriteLine(msgJson);
+                        _writer.Flush();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] Failed to send effect list over IPC: " + ex.Message);
+            }
+        }
+
         private void ServerWorker()
         {
             try

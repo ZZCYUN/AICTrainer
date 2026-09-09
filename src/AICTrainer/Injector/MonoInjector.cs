@@ -34,8 +34,8 @@ namespace AICTrainer.Injector
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool CloseHandle(IntPtr hObject);
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
-        private static extern IntPtr LoadLibraryExA(string lpLibFileName, IntPtr hFile, uint dwFlags);
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern IntPtr LoadLibraryExW(string lpLibFileName, IntPtr hFile, uint dwFlags);
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
         private static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
@@ -88,7 +88,7 @@ namespace AICTrainer.Injector
                 }
 
                 // 2. 本地加载目标 Mono DLL 解析导出函数相对地址 (RVA)
-                IntPtr localMono = LoadLibraryExA(monoDllPath, IntPtr.Zero, DONT_RESOLVE_DLL_REFERENCES);
+                IntPtr localMono = LoadLibraryExW(monoDllPath, IntPtr.Zero, DONT_RESOLVE_DLL_REFERENCES);
                 if (localMono == IntPtr.Zero)
                 {
                     errorMessage = $"无法加载本地 Mono 库: {monoDllPath}";
@@ -379,7 +379,7 @@ namespace AICTrainer.Injector
                     return false;
                 }
 
-                IntPtr localMono = LoadLibraryExA(monoDllPath, IntPtr.Zero, DONT_RESOLVE_DLL_REFERENCES);
+                IntPtr localMono = LoadLibraryExW(monoDllPath, IntPtr.Zero, DONT_RESOLVE_DLL_REFERENCES);
                 if (localMono == IntPtr.Zero)
                 {
                     errorMessage = $"无法加载本地 Mono 库: {monoDllPath}";
@@ -724,7 +724,7 @@ namespace AICTrainer.Injector
                     return false;
                 }
 
-                IntPtr localMono = LoadLibraryExA(monoDllPath, IntPtr.Zero, DONT_RESOLVE_DLL_REFERENCES);
+                IntPtr localMono = LoadLibraryExW(monoDllPath, IntPtr.Zero, DONT_RESOLVE_DLL_REFERENCES);
                 if (localMono == IntPtr.Zero) return false;
 
                 IntPtr localAddr = GetProcAddress(localMono, "mono_get_root_domain");
