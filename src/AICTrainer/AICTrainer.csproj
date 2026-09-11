@@ -11,9 +11,9 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
     <ApplicationIcon>Resources\app.ico</ApplicationIcon>
-    <Version>1.2.1.0</Version>
-    <AssemblyVersion>1.2.1.0</AssemblyVersion>
-    <FileVersion>1.2.1.0</FileVersion>
+    <Version>1.2.1.5</Version>
+    <AssemblyVersion>1.2.1.5</AssemblyVersion>
+    <FileVersion>1.2.1.5</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,4 +26,11 @@
     <Resource Include="Resources\mascot.png" />
     <Resource Include="Resources\stickers_sheet.png" />
   </ItemGroup>
+
+  <Target Name="CopyPayload" BeforeTargets="BeforeBuild">
+    <Copy SourceFiles="..\AICModPayload\bin\$(Configuration)\netstandard2.1\AICModPayload.dll"
+          DestinationFolder="Resources"
+          SkipUnchangedFiles="true"
+          Condition="Exists('..\AICModPayload\bin\$(Configuration)\netstandard2.1\AICModPayload.dll')" />
+  </Target>
 </Project>

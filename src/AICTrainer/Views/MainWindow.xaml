@@ -703,6 +703,7 @@
                                 <Button Content="🌿 清除异常" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickCureSer"/>
                                 <Button Content="🍽️ 清空饱食" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickClearSatiety"/>
                                 <Button Content="❄️ 清空兴奋" Style="{StaticResource PillButton}" Margin="0,0,6,0" Click="OnQuickClearEp"/>
+                                <Button Content="{Binding QuickCaneButtonText}" Style="{StaticResource PillButton}" Margin="0,0,6,0" Command="{Binding QuickToggleCaneCommand}" IsEnabled="{Binding IsInMap}" ToolTip="快速丢弃当前装备的法杖（进入徒手体术状态）或召回已丢弃的法杖"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                 <CheckBox Style="{StaticResource ModernToggleSwitch}" Content="保存配置" IsChecked="{Binding IsSaveConfigEnabled}" VerticalAlignment="Center" ToolTip="开启后自动持久化当前所有修改项开关与数值，下次启动修改器自动恢复并勾选"/>
@@ -1912,6 +1913,54 @@
                                     <TextBox Grid.Column="1" Width="80" Text="{Binding DamageMultiplierText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Margin="4,0,4,0" VerticalAlignment="Center" ToolTip="支持输入任意倍率数值（内置防溢出保护）"/>
                                     <TextBlock Grid.Column="2" Text="x" Foreground="{StaticResource AccentCyan}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
                                     <CheckBox Grid.Column="4" Style="{StaticResource ModernToggleSwitch}" Content="倍率开启" IsChecked="{Binding IsDamageMultiplierEnabled}" HorizontalAlignment="Right"/>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <!-- 丢弃法杖 -->
+                    <Border Visibility="{Binding Vis_DropCane}" Style="{StaticResource FeatureCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- 左侧表情图标 -->
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" BorderBrush="#383852" BorderThickness="1" Background="#141420" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Border.Clip>
+                                    <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,40,40"/>
+                                </Border.Clip>
+                                <Image Source="{h:Sticker 2_2}" Stretch="UniformToFill"/>
+                            </Border>
+                            <!-- 右侧主体内容 -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="丢弃法杖" Foreground="{StaticResource TextPrimary}" FontWeight="Bold" FontSize="13"/>
+                                        <Border Margin="8,0,0,0" Background="{Binding CaneStatusBg}" BorderBrush="{Binding CaneStatusBorder}" BorderThickness="1" CornerRadius="6" Padding="6,1">
+                                            <TextBlock Text="{Binding CaneStatusText}" Foreground="{Binding CaneStatusColor}" FontSize="11" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Style="{StaticResource StarButton}" Command="{Binding ToggleFavCommand}" CommandParameter="DropCane" Background="{Binding StarBg_DropCane}" BorderBrush="{Binding StarBorder_DropCane}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StarChar_DropCane}" Foreground="{Binding StarColor_DropCane}" FontSize="15" FontWeight="Bold" Margin="0,-2,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding StarText_DropCane}" Foreground="{Binding StarTextColor_DropCane}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="将手持法杖丢弃至脚下进入徒手肉搏体术状态，法杖作为物理实体留在场景中并标记在大地图上；走近按交互键或在此点击「召回」即可捡回。" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Content="🪄 丢弃" Style="{StaticResource PillButton}" Margin="0,0,6,0" Command="{Binding DropCaneCommand}" IsEnabled="{Binding CanDropCane}" ToolTip="将手中法杖丢弃到当前位置"/>
+                                        <Button Content="✨ 召回" Style="{StaticResource PillButton}" Command="{Binding RecallCaneCommand}" IsEnabled="{Binding CanRecallCane}" ToolTip="直接将丢弃在场景中的法杖召回至手中"/>
+                                    </StackPanel>
                                 </Grid>
                             </Grid>
                         </Grid>

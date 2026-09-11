@@ -160,6 +160,10 @@ namespace AICTrainer.ViewModels
             QuickClearSatietyCommand = new RelayCommand(() => Client.SendAction("clear_satiety"));
             QuickClearEpCommand = new RelayCommand(() => Client.SendAction("clear_ep"));
 
+            DropCaneCommand = new RelayCommand(() => Client.DropCane());
+            RecallCaneCommand = new RelayCommand(() => Client.RecallCane());
+            QuickToggleCaneCommand = new RelayCommand(() => { if (IsCaneDropped) Client.RecallCane(); else Client.DropCane(); });
+
             Monitor.OnGameDetected += proc =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
@@ -301,10 +305,14 @@ namespace AICTrainer.ViewModels
                         CurrentGuildPointsText = state.GuildPoints.ToString();
                         CurrentLanthanumText = state.Lanthanum.ToString();
                         CurrentMapText = string.IsNullOrEmpty(state.CurrentMap) ? "关卡载入中" : state.CurrentMap;
+                        IsCaneDropped = state.IsCaneDropped;
+                        HasEquippedCane = state.HasEquippedCane;
                     }
                     else
                     {
                         CurrentMapText = "标题画面 / 菜单";
+                        IsCaneDropped = false;
+                        HasEquippedCane = false;
                     }
                 });
             };
@@ -342,6 +350,8 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
                 OnPropertyChanged(nameof(ItemGetButtonVis));
                 OnPropertyChanged(nameof(EffectGetButtonVis));
+                OnPropertyChanged(nameof(CanDropCane));
+                OnPropertyChanged(nameof(CanRecallCane));
             }
         }
         public bool IsGameReady
@@ -355,6 +365,8 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
                 OnPropertyChanged(nameof(ItemGetButtonVis));
                 OnPropertyChanged(nameof(EffectGetButtonVis));
+                OnPropertyChanged(nameof(CanDropCane));
+                OnPropertyChanged(nameof(CanRecallCane));
             }
         }
 
@@ -380,6 +392,8 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
                 OnPropertyChanged(nameof(ItemGetButtonVis));
                 OnPropertyChanged(nameof(EffectGetButtonVis));
+                OnPropertyChanged(nameof(CanDropCane));
+                OnPropertyChanged(nameof(CanRecallCane));
             }
         }
         public List<MapEntryDto> AllMaps { get; private set; } = new List<MapEntryDto>();
@@ -425,6 +439,52 @@ namespace AICTrainer.ViewModels
         public string CurrentBarScoreText { get => _currentBarScoreText; set { _currentBarScoreText = value; OnPropertyChanged(); } }
         public string CurrentGuildPointsText { get => _currentGuildPointsText; set { _currentGuildPointsText = value; OnPropertyChanged(); } }
         public string CurrentLanthanumText { get => _currentLanthanumText; set { _currentLanthanumText = value; OnPropertyChanged(); } }
+
+        // 法杖装备与丢弃（徒手模式）状态
+        private bool _isCaneDropped;
+        public bool IsCaneDropped
+        {
+            get => _isCaneDropped;
+            set
+            {
+                if (_isCaneDropped != value)
+                {
+                    _isCaneDropped = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CanDropCane));
+                    OnPropertyChanged(nameof(CanRecallCane));
+                    OnPropertyChanged(nameof(CaneStatusText));
+                    OnPropertyChanged(nameof(CaneStatusColor));
+                    OnPropertyChanged(nameof(CaneStatusBorder));
+                    OnPropertyChanged(nameof(CaneStatusBg));
+                    OnPropertyChanged(nameof(QuickCaneButtonText));
+                    OnPropertyChanged(nameof(CategoryActiveStatsText));
+                }
+            }
+        }
+
+        private bool _hasEquippedCane = true;
+        public bool HasEquippedCane
+        {
+            get => _hasEquippedCane;
+            set
+            {
+                if (_hasEquippedCane != value)
+                {
+                    _hasEquippedCane = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CanDropCane));
+                }
+            }
+        }
+
+        public bool CanDropCane => IsInMap && HasEquippedCane && !IsCaneDropped;
+        public bool CanRecallCane => IsInMap && IsCaneDropped;
+        public string CaneStatusText => IsCaneDropped ? "徒手 (已丢弃)" : "正常持杖";
+        public string CaneStatusColor => IsCaneDropped ? "#F59E0B" : "#00C4D6";
+        public string CaneStatusBorder => IsCaneDropped ? "#78350F" : "#1B2738";
+        public string CaneStatusBg => IsCaneDropped ? "#261A0C" : "#0D2229";
+        public string QuickCaneButtonText => IsCaneDropped ? "✨ 召回法杖" : "🪄 丢弃法杖";
 
         // ======================= 分类与收藏系统 =======================
         public int SelectedCategoryIndex
@@ -508,7 +568,7 @@ namespace AICTrainer.ViewModels
                 switch (SelectedCategoryIndex)
                 {
                     case 0: // 全部
-                        total = 45;
+                        total = 49;
                         if (IsHpLocked) active++;
                         if (IsMpLocked) active++;
                         if (IsMpCrackLocked) active++;
@@ -533,6 +593,7 @@ namespace AICTrainer.ViewModels
                         if (IsShowHitboxes) active++;
                         if (IsNoelAttackScaleEnabled) active++;
                         if (IsDamageMultiplierEnabled) active++;
+                        if (IsCaneDropped) active++;
                         if (IsNoWormTrap) active++;
                         if (IsNoSpikeDamage) active++;
                         if (IsNoThunderDamage) active++;
@@ -581,7 +642,7 @@ namespace AICTrainer.ViewModels
                         if (IsInfiniteJump) active++;
                         return $"已激活 {active} / {total} 项";
                     case 4: // 战斗
-                        total = 10;
+                        total = 11;
                         if (IsOneHitKill) active++;
                         if (IsShieldNeverBreak) active++;
                         if (IsInstantMagicCharge) active++;
@@ -592,6 +653,7 @@ namespace AICTrainer.ViewModels
                         if (IsShowHitboxes) active++;
                         if (IsNoelAttackScaleEnabled) active++;
                         if (IsDamageMultiplierEnabled) active++;
+                        if (IsCaneDropped) active++;
                         return $"已激活 {active} / {total} 项";
                     case 5: // 环境
                         total = 5;
@@ -609,7 +671,7 @@ namespace AICTrainer.ViewModels
                         if (IsAlwaysHungryBonus) active++;
                         return $"已激活 {active} / {total} 项";
                     case 7: // 辅助
-                        total = 7;
+                        total = 9;
                         if (IsSaveAnywhere) active++;
                         if (IsFreezeCountdown) active++;
                         if (IsSlotLocked) active++;
@@ -651,10 +713,10 @@ namespace AICTrainer.ViewModels
             {
                 "Survival" => new[] { "Hp", "Mp", "MpCrack", "Inventory", "MaxSatiety", "Satiety", "Ep", "ImmuneStatus" },
                 "Mobility" => new[] { "WalkSpeed", "RunSpeed", "Grip", "NoSlip", "Knockback", "InfiniteJump" },
-                "Combat" => new[] { "OneHitKill", "ShieldBreak", "InstantMagicCharge", "NoBurstTired", "JustGuardNoHit", "ExtendedJustGuard", "DisableHitCheck", "ShowHitboxes", "NoelAttackScale", "DamageMultiplier" },
+                "Combat" => new[] { "OneHitKill", "ShieldBreak", "InstantMagicCharge", "NoBurstTired", "JustGuardNoHit", "ExtendedJustGuard", "DisableHitCheck", "ShowHitboxes", "NoelAttackScale", "DamageMultiplier", "DropCane" },
                 "Hazards" => new[] { "Worm", "Spike", "Thunder", "Drown", "Acid" },
                 "World" => new[] { "FastTravelAnytime", "FastTravelAnywhere", "Danger", "HungryBonus" },
-                "Utility" => new[] { "SaveAnywhere", "Countdown", "Slot", "BreakFood", "Mosaic", "DojoAlwaysWin", "BestReelReward" },
+                "Utility" => new[] { "SaveAnywhere", "Countdown", "Slot", "BreakFood", "Mosaic", "DojoAlwaysWin", "BestReelReward", "BattleBackpack", "BattleWarehouse" },
                 "Currencies" => new[] { "Gold", "Crafts", "Juice", "BarScore", "GuildPoints", "Lanthanum" },
                 _ => Array.Empty<string>()
             };
@@ -734,7 +796,7 @@ namespace AICTrainer.ViewModels
             {
                 "Vis_Hp", "Vis_Mp", "Vis_MpCrack", "Vis_Inventory", "Vis_MaxSatiety", "Vis_Satiety", "Vis_Ep", "Vis_ImmuneStatus",
                 "Vis_WalkSpeed", "Vis_RunSpeed", "Vis_Grip", "Vis_NoSlip", "Vis_Knockback", "Vis_InfiniteJump",
-                "Vis_OneHitKill", "Vis_ShieldBreak", "Vis_InstantMagicCharge", "Vis_NoBurstTired", "Vis_JustGuardNoHit", "Vis_ExtendedJustGuard", "Vis_DisableHitCheck", "Vis_ShowHitboxes", "Vis_NoelAttackScale", "Vis_DamageMultiplier",
+                "Vis_OneHitKill", "Vis_ShieldBreak", "Vis_InstantMagicCharge", "Vis_NoBurstTired", "Vis_JustGuardNoHit", "Vis_ExtendedJustGuard", "Vis_DisableHitCheck", "Vis_ShowHitboxes", "Vis_NoelAttackScale", "Vis_DamageMultiplier", "Vis_DropCane",
                 "Vis_Worm", "Vis_Spike", "Vis_Thunder", "Vis_Drown", "Vis_Acid",
                 "Vis_FastTravelAnytime", "Vis_FastTravelAnywhere", "Vis_Danger", "Vis_HungryBonus",
                 "Vis_SaveAnywhere", "Vis_Countdown", "Vis_Slot", "Vis_BreakFood", "Vis_Mosaic", "Vis_DojoAlwaysWin", "Vis_BestReelReward", "Vis_BattleBackpack", "Vis_BattleWarehouse",
@@ -773,6 +835,7 @@ namespace AICTrainer.ViewModels
         public Visibility Vis_ShowHitboxes => CardVis("Combat", "ShowHitboxes");
         public Visibility Vis_NoelAttackScale => CardVis("Combat", "NoelAttackScale");
         public Visibility Vis_DamageMultiplier => CardVis("Combat", "DamageMultiplier");
+        public Visibility Vis_DropCane => CardVis("Combat", "DropCane");
 
         // 地形免疫类
         public Visibility Vis_Worm => CardVis("Hazards", "Worm");
@@ -975,6 +1038,13 @@ namespace AICTrainer.ViewModels
         public string StarTextColor_DamageMultiplier => StarTextColor("DamageMultiplier");
         public string StarBg_DamageMultiplier => StarBg("DamageMultiplier");
         public string StarBorder_DamageMultiplier => StarBorder("DamageMultiplier");
+        public bool IsFav_DropCane => IsFav("DropCane");
+        public string StarChar_DropCane => StarChar("DropCane");
+        public string StarText_DropCane => StarText("DropCane");
+        public string StarColor_DropCane => StarColor("DropCane");
+        public string StarTextColor_DropCane => StarTextColor("DropCane");
+        public string StarBg_DropCane => StarBg("DropCane");
+        public string StarBorder_DropCane => StarBorder("DropCane");
         public bool IsFav_Worm => IsFav("Worm");
         public string StarChar_Worm => StarChar("Worm");
         public string StarText_Worm => StarText("Worm");
@@ -1576,6 +1646,9 @@ namespace AICTrainer.ViewModels
         public ICommand QuickCureSerCommand { get; }
         public ICommand QuickClearSatietyCommand { get; }
         public ICommand QuickClearEpCommand { get; }
+        public ICommand DropCaneCommand { get; }
+        public ICommand RecallCaneCommand { get; }
+        public ICommand QuickToggleCaneCommand { get; }
 
         public async Task LaunchGameAsync()
         {

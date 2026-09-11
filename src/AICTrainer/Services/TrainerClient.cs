@@ -182,6 +182,16 @@ namespace AICTrainer.Services
             SendAction("ApplyEffect", intParam: serId, intParam2: level, intParam3: seconds);
         }
 
+        public void DropCane()
+        {
+            SendAction("drop_cane");
+        }
+
+        public void RecallCane()
+        {
+            SendAction("recall_cane");
+        }
+
         private void ListenLoop(NetworkStream stream, CancellationToken token)
         {
             try

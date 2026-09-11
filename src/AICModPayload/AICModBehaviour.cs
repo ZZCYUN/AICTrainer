@@ -515,6 +515,16 @@ namespace AICMod
                             }
                         }
                         catch { }
+
+                        try
+                        {
+                            if (pr.Skill != null)
+                            {
+                                state.IsCaneDropped = pr.Skill.cane_itemdropped;
+                                state.HasEquippedCane = pr.Skill.getCurrentCaneEquip().valid;
+                            }
+                        }
+                        catch { }
                     }
                     catch { }
                 }
@@ -573,6 +583,14 @@ namespace AICMod
                             int seconds = act.IntParam3;
                             ApplyEffect(act.IntParam, level, seconds);
                         }
+                        break;
+
+                    case "drop_cane":
+                        DropCane(pr as PRNoel, nm2d);
+                        break;
+
+                    case "recall_cane":
+                        RecallCane(pr as PRNoel, nm2d);
                         break;
 
                     case "full_heal":
@@ -765,6 +783,91 @@ namespace AICMod
             catch (Exception ex)
             {
                 Debug.LogError("[AICMod] HandleAction error: " + ex);
+            }
+        }
+
+        private static void DropCane(PRNoel? pr, NelM2DBase? nm2d)
+        {
+            if (pr == null || nm2d == null || pr.Mp == null || pr.Skill == null)
+            {
+                Debug.LogWarning("[AICMod] Cannot drop cane: not in active game map.");
+                return;
+            }
+            if (pr.Skill.cane_itemdropped)
+            {
+                Debug.LogWarning("[AICMod] Cane is already dropped.");
+                return;
+            }
+            var curCane = pr.Skill.getCurrentCaneEquip();
+            if (!curCane.valid)
+            {
+                Debug.LogWarning("[AICMod] Cannot drop cane: no valid cane equipped.");
+                return;
+            }
+
+            try
+            {
+                pr.Skill.killHoldMagic();
+                Vector3 dropPos = NoelCaneEquipSwitcher.CaneInitPos(pr, dest: false);
+                var dropped = nm2d.DROPC?.makeDrop(curCane, dropPos, reduce_inventory: true, M2NoelCane.CDROP_TYPE._CURRENT_CANE);
+                if (dropped != null)
+                {
+                    pr.playSndPos("itembomb_initialize", 1);
+                    pr.need_check_event = true;
+                    pr.recheck_emot = true;
+                    UILog.Instance?.AddAlert("法杖已丢弃至场景中", UILogRow.TYPE.ALERT);
+                }
+                else
+                {
+                    Debug.LogWarning("[AICMod] DROPC.makeDrop returned null.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[AICMod] DropCane error: " + ex);
+            }
+        }
+
+        private static void RecallCane(PRNoel? pr, NelM2DBase? nm2d)
+        {
+            if (pr == null || nm2d == null || pr.Skill == null)
+            {
+                Debug.LogWarning("[AICMod] Cannot recall cane: not in game.");
+                return;
+            }
+
+            try
+            {
+                var curCane = pr.Skill.getCurrentCaneEquip();
+                if (curCane.valid && nm2d.DROPC != null)
+                {
+                    nm2d.DROPC.removeDrop(curCane.getSrcCane(), curCane.grade, recover_item: true);
+                }
+
+                pr.Skill.quitCaneItemDrop(dropcane_recover: true);
+
+                if (curCane.valid && curCane.GetItem() != null && nm2d.IMNG != null)
+                {
+                    var inv = nm2d.IMNG.getInventory();
+                    if (inv != null && inv.getCount(curCane.GetItem(), curCane.grade) <= 0)
+                    {
+                        SafeAddItem(inv, curCane.GetItem(), 1, curCane.grade);
+                    }
+                    pr.Skill.switchCane(curCane.getSrcCane(), curCane.grade);
+                }
+
+                pr.playSndPos("cane_assign_equip", 1);
+                if (pr.Mp != null)
+                {
+                    pr.Mp.getEffect()?.PtcSTsetVar("x", pr.x).PtcSTsetVar("y", pr.y).PtcST("get_drop_item", nm2d);
+                }
+                pr.need_check_event = true;
+                pr.recheck_emot = true;
+                UILog.Instance?.AddAlert("法杖已召回手中", UILogRow.TYPE.ALERT);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[AICMod] RecallCane error: " + ex);
             }
         }
 

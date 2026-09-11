@@ -39,6 +39,10 @@ namespace AICShared
         public int GuildPoints;
         public int Lanthanum;
 
+        // 法杖装备与丢弃状态 (徒手状态监测)
+        public bool IsCaneDropped;
+        public bool HasEquippedCane;
+
         // 版本与补丁健康度 (版本自适应)
         public string GameVersion = string.Empty;
         public string EngineVersion = string.Empty;
