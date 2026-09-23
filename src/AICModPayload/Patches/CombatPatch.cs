@@ -60,6 +60,7 @@ namespace AICMod.Patches
             public int hpdmg_current;
             public int mpdmg0;
             public int mpdmg_current;
+            public bool fix_damage;
         }
 
         // 1b. 伤害倍率修改与一击秒杀：挂钩 NelEnemy.applyDamage 确保秒杀、普通攻击、固定伤害(fix_damage)及 MP 伤害在 Boss 与小兵上计算与飘字均完全同步
@@ -96,7 +97,8 @@ namespace AICMod.Patches
                         hpdmg0 = Atk.hpdmg0,
                         hpdmg_current = Atk.hpdmg_current,
                         mpdmg0 = Atk.mpdmg0,
-                        mpdmg_current = Atk.mpdmg_current
+                        mpdmg_current = Atk.mpdmg_current,
+                        fix_damage = Atk.fix_damage
                     };
                     int maxHp = (int)__instance.get_maxhp();
                     int killVal = Math.Max(9999999, maxHp * 64);
@@ -105,6 +107,16 @@ namespace AICMod.Patches
                     {
                         Atk.hpdmg_current = killVal;
                     }
+                    Atk.fix_damage = true;
+                    try
+                    {
+                        var nodmgField = AccessTools.Field(typeof(NelEnemy), "NoDamage");
+                        if (nodmgField?.GetValue(__instance) is M2NoDamageManager nodmg)
+                        {
+                            nodmg.Clear();
+                        }
+                    }
+                    catch { }
                     return;
                 }
 
@@ -116,7 +128,8 @@ namespace AICMod.Patches
                         hpdmg0 = Atk.hpdmg0,
                         hpdmg_current = Atk.hpdmg_current,
                         mpdmg0 = Atk.mpdmg0,
-                        mpdmg_current = Atk.mpdmg_current
+                        mpdmg_current = Atk.mpdmg_current,
+                        fix_damage = Atk.fix_damage
                     };
 
                     // 无条件放大 Atk 的基础伤害与当前伤害（涵盖普攻与固定伤害），彻底解决 Boss 晕眩阶段或重写 applyHpDamageRatio 导致的飘字不放大问题
@@ -147,6 +160,7 @@ namespace AICMod.Patches
                 Atk.hpdmg_current = __state.hpdmg_current;
                 Atk.mpdmg0 = __state.mpdmg0;
                 Atk.mpdmg_current = __state.mpdmg_current;
+                Atk.fix_damage = __state.fix_damage;
             }
         }
 
@@ -297,19 +311,28 @@ namespace AICMod.Patches
         }
 
         // 7.2 拦截向玩家施加 BURST_TIRED 与 OVERRUN_TIRED 状态
-        [HarmonyPatch(typeof(M2Ser), "Add", new[] { typeof(SER), typeof(int), typeof(int), typeof(bool) })]
-        [HarmonyPrefix]
-        public static bool Prefix_M2Ser_Add(M2Ser __instance, SER ser, ref M2SerItem? __result)
+        [HarmonyPatch]
+        public static class Patch_M2Ser_Add
         {
-            if (AICModConfig.Current.NoBurstTired && (ser == SER.BURST_TIRED || ser == SER.OVERRUN_TIRED))
+            public static MethodBase? TargetMethod()
             {
-                if (__instance.Mv is PR)
-                {
-                    __result = null;
-                    return false; // 豁免圣光爆发带来的眩晕与力竭
-                }
+                return AccessTools.Method(typeof(M2Ser), "Add", new[] { typeof(SER), typeof(int), typeof(int), typeof(bool) })
+                    ?? AccessTools.Method(typeof(M2Ser), "Add", new[] { typeof(SER), typeof(int), typeof(int) });
             }
-            return true;
+
+            [HarmonyPrefix]
+            public static bool Prefix(M2Ser __instance, SER ser, ref M2SerItem? __result)
+            {
+                if (AICModConfig.Current.NoBurstTired && (ser == SER.BURST_TIRED || ser == SER.OVERRUN_TIRED))
+                {
+                    if (__instance.Mv is PR)
+                    {
+                        __result = null;
+                        return false; // 豁免圣光爆发带来的眩晕与力竭
+                    }
+                }
+                return true;
+            }
         }
 
         // 7.3 爆发后清零魔力透支计数，并清除残余疲劳状态

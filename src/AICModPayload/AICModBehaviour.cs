@@ -132,7 +132,7 @@ namespace AICMod
                     else if (curHp > target)
                     {
                         ReflectionHelper.SetValue(pr, target, "hp", "Hp", "_hp");
-                        if (UIStatus.isPr(pr)) UIStatus.Instance.fineHpRatio(false);
+                        if (UIStatus.isPr(pr)) SafeFineHpRatio(false);
                     }
                 }
             });
@@ -151,7 +151,7 @@ namespace AICMod
                     else if (curMp > target)
                     {
                         ReflectionHelper.SetValue(pr, target, "mp", "Mp", "_mp");
-                        if (UIStatus.isPr(pr)) UIStatus.Instance.fineMpRatio(false);
+                        if (UIStatus.isPr(pr)) SafeFineMpRatio(false);
                     }
                 }
             });
@@ -634,7 +634,7 @@ namespace AICMod
                         {
                             int curHp = (int)pr.get_hp();
                             if (act.IntParam > curHp) pr.cureHp(act.IntParam - curHp);
-                            else { ReflectionHelper.SetValue(pr, act.IntParam, "hp", "Hp", "_hp"); if (UIStatus.isPr(pr)) UIStatus.Instance.fineHpRatio(false); }
+                            else { ReflectionHelper.SetValue(pr, act.IntParam, "hp", "Hp", "_hp"); if (UIStatus.isPr(pr)) SafeFineHpRatio(false); }
                         }
                         break;
 
@@ -643,7 +643,7 @@ namespace AICMod
                         {
                             int curMp = (int)pr.get_mp();
                             if (act.IntParam > curMp) pr.cureMp(act.IntParam - curMp);
-                            else { ReflectionHelper.SetValue(pr, act.IntParam, "mp", "Mp", "_mp"); if (UIStatus.isPr(pr)) UIStatus.Instance.fineMpRatio(false); }
+                            else { ReflectionHelper.SetValue(pr, act.IntParam, "mp", "Mp", "_mp"); if (UIStatus.isPr(pr)) SafeFineMpRatio(false); }
                         }
                         break;
 
@@ -912,8 +912,43 @@ namespace AICMod
                     UIStatus.Instance.quitCrack();
                 }
                 UIStatus.Instance.draw_crack = true;
-                UIStatus.Instance.fineMpRatio(true, false);
+                SafeFineMpRatio(true, false);
             }
+        }
+
+        public static void SafeFineMpRatio(bool use_cushion = false, bool use_quake = false, int value = 0)
+        {
+            try
+            {
+                if (UIStatus.Instance == null) return;
+                var mi = typeof(UIStatus).GetMethod("fineMpRatio", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (mi != null)
+                {
+                    var pars = mi.GetParameters();
+                    if (pars.Length == 3) mi.Invoke(UIStatus.Instance, new object[] { use_cushion, use_quake, value });
+                    else if (pars.Length == 2) mi.Invoke(UIStatus.Instance, new object[] { use_cushion, use_quake });
+                    else if (pars.Length == 1) mi.Invoke(UIStatus.Instance, new object[] { use_cushion });
+                }
+            }
+            catch { }
+        }
+
+        public static void SafeFineHpRatio(bool use_cushion = false)
+        {
+            try
+            {
+                if (UIStatus.Instance == null) return;
+                var mi = typeof(UIStatus).GetMethod("fineHpRatio", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (mi != null)
+                {
+                    var pars = mi.GetParameters();
+                    if (pars.Length == 1) mi.Invoke(UIStatus.Instance, new object[] { use_cushion });
+                    else if (pars.Length == 0) mi.Invoke(UIStatus.Instance, null);
+                    else if (pars.Length == 2) mi.Invoke(UIStatus.Instance, new object[] { use_cushion, false });
+                    else if (pars.Length == 3) mi.Invoke(UIStatus.Instance, new object[] { use_cushion, false, 0 });
+                }
+            }
+            catch { }
         }
 
         private static void SafeAddItem(ItemStorage inv, NelItem item, int count, int grade = 0)
@@ -1173,15 +1208,61 @@ namespace AICMod
                 }
 
                 // 直接调用游戏官方原版内置地图传送实现：_DEBUG_GOTO_MAP
-                evt.EV.stack("_DEBUG_GOTO_MAP", 0, -1, new string[1] { mapKey });
-                Debug.Log($"[AICMod] Executed official _DEBUG_GOTO_MAP to {mapKey}");
-                return true;
+                return SafeExecuteDebugGotoMap(mapKey);
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[AICMod] Failed to execute official _DEBUG_GOTO_MAP: {ex}");
                 return false;
             }
+        }
+
+        public static bool SafeExecuteDebugGotoMap(string mapKey)
+        {
+            try
+            {
+                var evType = typeof(evt.EV);
+                var mi5 = evType.GetMethod("stack", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static, null,
+                    new[] { typeof(string), typeof(int), typeof(int), typeof(string[]), typeof(evt.EvReader) }, null);
+                if (mi5 != null)
+                {
+                    mi5.Invoke(null, new object?[] { "_DEBUG_GOTO_MAP", 0, -1, new string[] { mapKey }, null });
+                    Debug.Log($"[AICMod] Executed official _DEBUG_GOTO_MAP to {mapKey} (5-arg)");
+                    return true;
+                }
+                var mi4 = evType.GetMethod("stack", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static, null,
+                    new[] { typeof(string), typeof(int), typeof(int), typeof(string[]) }, null);
+                if (mi4 != null)
+                {
+                    mi4.Invoke(null, new object[] { "_DEBUG_GOTO_MAP", 0, -1, new string[] { mapKey } });
+                    Debug.Log($"[AICMod] Executed official _DEBUG_GOTO_MAP to {mapKey} (4-arg)");
+                    return true;
+                }
+                foreach (var m in evType.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static))
+                {
+                    if (m.Name == "stack")
+                    {
+                        var p = m.GetParameters();
+                        if (p.Length == 5)
+                        {
+                            m.Invoke(null, new object?[] { "_DEBUG_GOTO_MAP", 0, -1, new string[] { mapKey }, null });
+                            Debug.Log($"[AICMod] Executed official _DEBUG_GOTO_MAP to {mapKey} (fallback 5-arg)");
+                            return true;
+                        }
+                        if (p.Length == 4)
+                        {
+                            m.Invoke(null, new object[] { "_DEBUG_GOTO_MAP", 0, -1, new string[] { mapKey } });
+                            Debug.Log($"[AICMod] Executed official _DEBUG_GOTO_MAP to {mapKey} (fallback 4-arg)");
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[AICMod] SafeExecuteDebugGotoMap error: {ex}");
+            }
+            return false;
         }
 
         #endregion
@@ -1463,6 +1544,47 @@ namespace AICMod
         /// ORGASM_AFTER 是 "level = max_level" 的特殊效果，直接以目标内部等级作为上限传入。
         /// 时长参数为秒，内部 ×60 转帧；&lt;=0 用游戏默认（120帧 = 2秒）。
         /// </summary>
+        public static M2SerItem? SafeAddSer(M2Ser ser, SER serId, int frames, int addMaxLevel)
+        {
+            try
+            {
+                if (ser == null) return null;
+                var serType = typeof(M2Ser);
+                var mi4 = serType.GetMethod("Add", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, null,
+                    new[] { typeof(SER), typeof(int), typeof(int), typeof(bool) }, null);
+                if (mi4 != null)
+                {
+                    return mi4.Invoke(ser, new object[] { serId, frames, addMaxLevel, false }) as M2SerItem;
+                }
+                var mi3 = serType.GetMethod("Add", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, null,
+                    new[] { typeof(SER), typeof(int), typeof(int) }, null);
+                if (mi3 != null)
+                {
+                    return mi3.Invoke(ser, new object[] { serId, frames, addMaxLevel }) as M2SerItem;
+                }
+                foreach (var m in serType.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance))
+                {
+                    if (m.Name == "Add")
+                    {
+                        var pars = m.GetParameters();
+                        if (pars.Length == 4 && pars[0].ParameterType == typeof(SER))
+                        {
+                            return m.Invoke(ser, new object[] { serId, frames, addMaxLevel, false }) as M2SerItem;
+                        }
+                        if (pars.Length == 3 && pars[0].ParameterType == typeof(SER))
+                        {
+                            return m.Invoke(ser, new object[] { serId, frames, addMaxLevel }) as M2SerItem;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[AICMod] SafeAddSer error: {ex}");
+            }
+            return null;
+        }
+
         public static void ApplyEffect(int serId, int level, int seconds)
         {
             try
@@ -1480,7 +1602,7 @@ namespace AICMod
                 int addMaxLevel = serId == (int)SER.ORGASM_AFTER ? target : maxLevel;
 
                 int frames = seconds > 0 ? seconds * 60 : -1;
-                var item = pr.Ser.Add((SER)serId, frames, addMaxLevel);
+                var item = SafeAddSer(pr.Ser, (SER)serId, frames, addMaxLevel);
                 if (item != null)
                 {
                     // 阈值型效果需多次累积 level_count 才会升到目标等级，循环抬级直到达到
