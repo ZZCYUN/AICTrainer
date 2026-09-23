@@ -24,15 +24,19 @@ namespace AICTrainer
 
         private static System.Threading.Mutex? _appMutex;
 
+        // 日志写入当前 EXE 所在目录，不依赖固定绝对路径
+        private static readonly string CrashLogPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "crash.log");
+        private static readonly string TestLogPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "test.log");
+
         protected override void OnStartup(StartupEventArgs e)
         {
             AppDomain.CurrentDomain.UnhandledException += (s, args) =>
             {
-                try { File.WriteAllText(@"C:\AliceInCradle\crash.log", args.ExceptionObject?.ToString()); } catch { }
+                try { File.WriteAllText(CrashLogPath, args.ExceptionObject?.ToString()); } catch { }
             };
             DispatcherUnhandledException += (s, args) =>
             {
-                try { File.WriteAllText(@"C:\AliceInCradle\crash.log", args.Exception?.ToString()); } catch { }
+                try { File.WriteAllText(CrashLogPath, args.Exception?.ToString()); } catch { }
             };
 
             if (e.Args.Length > 0 && (e.Args[0] == "--test" || e.Args[0] == "--cli"))
@@ -65,12 +69,12 @@ namespace AICTrainer
                 MainWindow = win;
                 win.Show();
 
-                try { if (File.Exists(@"C:\AliceInCradle\crash.log")) File.Delete(@"C:\AliceInCradle\crash.log"); } catch { }
+                try { if (File.Exists(CrashLogPath)) File.Delete(CrashLogPath); } catch { }
             }
             catch (Exception ex)
             {
-                try { File.WriteAllText(@"C:\AliceInCradle\crash.log", ex.ToString()); } catch { }
-                MessageBox.Show($"修改器启动出现异常：\n{ex.Message}\n\n详细崩溃日志已记录至 C:\\AliceInCradle\\crash.log", "启动异常", MessageBoxButton.OK, MessageBoxImage.Error);
+                try { File.WriteAllText(CrashLogPath, ex.ToString()); } catch { }
+                MessageBox.Show($"修改器启动出现异常：\n{ex.Message}\n\n详细崩溃日志已记录至 {CrashLogPath}", "启动异常", MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown(-1);
             }
         }
@@ -80,14 +84,14 @@ namespace AICTrainer
             Console.WriteLine(msg);
             try
             {
-                File.AppendAllText(@"C:\AliceInCradle\test.log", msg + Environment.NewLine);
+                File.AppendAllText(TestLogPath, msg + Environment.NewLine);
             }
             catch { }
         }
 
         private async Task RunCliTestAsync()
         {
-            try { File.Delete(@"C:\AliceInCradle\test.log"); } catch { }
+            try { File.Delete(TestLogPath); } catch { }
             Log("[AICTrainer CLI] Starting automated test mode...");
             var proc = Process.GetProcessesByName("AliceInCradle").FirstOrDefault();
             if (proc == null)

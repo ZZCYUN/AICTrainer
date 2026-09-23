@@ -10,6 +10,29 @@ namespace AICMod
     {
         private static bool _initialized;
 
+        // 日志写入游戏 EXE 所在目录（AliceInCradle_Data 的上级目录），不依赖固定绝对路径
+        private static readonly string LogPath = ResolveLogPath();
+
+        private static string ResolveLogPath()
+        {
+            try
+            {
+                string gameDir = Path.GetDirectoryName(Application.dataPath);
+                if (!string.IsNullOrEmpty(gameDir))
+                    return Path.Combine(gameDir, "payload.log");
+            }
+            catch { }
+
+            try { return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "payload.log"); }
+            catch { return "payload.log"; }
+        }
+
+        private static void Log(string msg)
+        {
+            try { File.AppendAllText(LogPath, msg); }
+            catch { }
+        }
+
         static Loader()
         {
             try
@@ -29,10 +52,10 @@ namespace AICMod
         {
             try
             {
-                File.AppendAllText(@"C:\AliceInCradle\payload.log", "[AICMod] Loader.Init entered\n");
+                Log("[AICMod] Loader.Init entered\n");
                 if (_initialized)
                 {
-                    File.AppendAllText(@"C:\AliceInCradle\payload.log", "[AICMod] Already initialized\n");
+                    Log("[AICMod] Already initialized\n");
                     return 0;
                 }
 
@@ -47,7 +70,7 @@ namespace AICMod
             }
             catch (Exception ex)
             {
-                File.AppendAllText(@"C:\AliceInCradle\payload.log", "[AICMod] Failed to initialize: " + ex + "\n");
+                Log("[AICMod] Failed to initialize: " + ex + "\n");
                 return -1;
             }
         }
@@ -76,19 +99,19 @@ namespace AICMod
                                     read += r;
                                 }
                                 var loaded = Assembly.Load(b);
-                                File.AppendAllText(@"C:\AliceInCradle\payload.log", $"[AICMod] Preloaded dependency: {loaded.FullName}\n");
+                                Log($"[AICMod] Preloaded dependency: {loaded.FullName}\n");
                             }
                         }
                         catch (Exception ex)
                         {
-                            File.AppendAllText(@"C:\AliceInCradle\payload.log", $"[AICMod] Preload {resName} failed: {ex.Message}\n");
+                            Log($"[AICMod] Preload {resName} failed: {ex.Message}\n");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                File.AppendAllText(@"C:\AliceInCradle\payload.log", "[AICMod] PreloadDependencies outer error: " + ex + "\n");
+                Log("[AICMod] PreloadDependencies outer error: " + ex + "\n");
             }
         }
 
@@ -96,19 +119,19 @@ namespace AICMod
         private static int StartPayload()
         {
             // 1. 初始化主线程控制器
-            File.AppendAllText(@"C:\AliceInCradle\payload.log", "[AICMod] Initializing Controller...\n");
+            Log("[AICMod] Initializing Controller...\n");
             AICModController.Init();
 
             // 2. 启动 IPC 服务端
-            File.AppendAllText(@"C:\AliceInCradle\payload.log", "[AICMod] Starting IpcServer...\n");
+            Log("[AICMod] Starting IpcServer...\n");
             IpcServer.Instance.Start();
 
             // 3. 应用补丁
-            File.AppendAllText(@"C:\AliceInCradle\payload.log", "[AICMod] Patching...\n");
+            Log("[AICMod] Patching...\n");
             ResilientPatcher.PatchAllResilient();
 
             _initialized = true;
-            File.AppendAllText(@"C:\AliceInCradle\payload.log", $"[AICMod] Init success! {ResilientPatcher.ActivePatches}/{ResilientPatcher.TotalPatches} patches active.\n");
+            Log($"[AICMod] Init success! {ResilientPatcher.ActivePatches}/{ResilientPatcher.TotalPatches} patches active.\n");
             return 0;
         }
 
