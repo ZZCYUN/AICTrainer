@@ -5,9 +5,9 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <Version>1.2.1.5</Version>
-    <AssemblyVersion>1.2.1.5</AssemblyVersion>
-    <FileVersion>1.2.1.5</FileVersion>
+    <Version>1.2.1.6</Version>
+    <AssemblyVersion>1.2.1.6</AssemblyVersion>
+    <FileVersion>1.2.1.6</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

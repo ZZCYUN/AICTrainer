@@ -213,8 +213,8 @@ dotnet publish src/AICTrainer/AICTrainer.csproj -c Release -r win-x64 --self-con
 
 ```markdown
 ### 基础信息
-- **修改器版本**：v1.2.1.5（训练器窗口标题或 settings.json 中记录）
-- **游戏版本**：v0.30e（或当前所使用的游戏版本）
+- **修改器版本**：v1.2.1.6（训练器窗口标题或 settings.json 中记录）
+- **游戏版本**：v0.30g（或当前所使用的游戏版本）
 - **操作系统**：Windows 10 / 11 (x64)
 - **启动方式**：修改器一键启动 / 手动先开游戏后点击注入
 
