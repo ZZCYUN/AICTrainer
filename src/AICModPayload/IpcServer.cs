@@ -23,6 +23,7 @@ namespace AICMod
 
         public event Action<ModConfigDto>? OnConfigReceived;
         public event Action<ActionMessage>? OnActionReceived;
+        public event Action? OnClientConnected;
 
         public bool IsClientConnected => _activeClient != null && _activeClient.Connected;
 
@@ -172,6 +173,35 @@ namespace AICMod
             }
         }
 
+        public void SendEnemyList(EnemyListDto enemyList)
+        {
+            if (!IsClientConnected || _writer == null) return;
+
+            try
+            {
+                string listJson = AicJson.EnemyList(enemyList.Enemies);
+                var msg = new IpcMessage
+                {
+                    Type = "EnemyList",
+                    JsonData = listJson
+                };
+                string msgJson = JsonUtility.ToJson(msg);
+
+                lock (_writeLock)
+                {
+                    if (_writer != null && _activeClient != null && _activeClient.Connected)
+                    {
+                        _writer.WriteLine(msgJson);
+                        _writer.Flush();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] Failed to send enemy list over IPC: " + ex.Message);
+            }
+        }
+
         private void ServerWorker()
         {
             try
@@ -201,6 +231,8 @@ namespace AICMod
                         {
                             _writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
                         }
+
+                        try { OnClientConnected?.Invoke(); } catch { }
 
                         // 立即向修改器客户端发送初始就绪状态（无需等待进入关卡）
                         SendState(new GameStateDto

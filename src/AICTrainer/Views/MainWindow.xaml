@@ -671,6 +671,11 @@
                                         Visibility="{Binding InjectButtonVis}"
                                         Margin="0,0,8,0"
                                         Click="OnInjectClick"/>
+                                <Button Content="👹 召唤魔物" Style="{StaticResource NeonButton}"
+                                        Visibility="{Binding SummonEnemyButtonVis}"
+                                        Margin="0,0,8,0"
+                                        Command="{Binding OpenSummonEnemyCommand}"
+                                        ToolTip="在当前关卡地图召唤任意魔物，支持自定义属性、狂暴状态、生命倍率与生成位置"/>
                                 <Button Content="✨ 添加效果" Style="{StaticResource NeonButton}"
                                         Visibility="{Binding EffectGetButtonVis}"
                                         Margin="0,0,8,0"

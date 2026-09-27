@@ -357,4 +357,34 @@ namespace AICShared
     {
         public System.Collections.Generic.List<EffectEntryDto> Effects = new System.Collections.Generic.List<EffectEntryDto>();
     }
+
+    [Serializable]
+    public class EnemyEntryDto
+    {
+        public uint Id;                     // ENEMYID uint 枚举数值
+        public string Key = string.Empty;   // 枚举名，如 SLIME_0, GOLEM_0, BOSS_NUSI_0
+        public string Name = string.Empty;  // 游戏本地化中文名，如 "史莱姆", "石巨人"
+        public string Category = string.Empty; // "NORMAL", "MACHINE", "BOSS" 等
+        public string CategoryZh = string.Empty; // "普通魔物", "机械魔物", "首领 BOSS"
+        public int DefaultHp;
+        public int DefaultMp;
+    }
+
+    [Serializable]
+    public class EnemyListDto
+    {
+        public System.Collections.Generic.List<EnemyEntryDto> Enemies = new System.Collections.Generic.List<EnemyEntryDto>();
+    }
+
+    [Serializable]
+    public class SummonEnemyDto
+    {
+        public string EnemyKey = string.Empty;
+        public int Count = 1;
+        public uint AttrBits = 0;        // ENATTR bits (如火、冰、雷、巨大等)
+        public bool IsOverDrive = false; // 是否开启狂暴
+        public float HpMultiplier = 1.0f;// 生命值倍率
+        public int PositionMode = 0;     // 0: 身前, 1: 身后, 2: 正上方, 3: 身边脚下, 4: 周围随机
+        public bool IsDummy = false;     // 木桩模式 (原地不移动/不跳跃)
+    }
 }

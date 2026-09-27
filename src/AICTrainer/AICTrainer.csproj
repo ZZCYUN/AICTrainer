@@ -11,13 +11,14 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
     <ApplicationIcon>Resources\app.ico</ApplicationIcon>
-    <Version>1.2.1.6</Version>
-    <AssemblyVersion>1.2.1.6</AssemblyVersion>
-    <FileVersion>1.2.1.6</FileVersion>
+    <Version>1.2.2.0</Version>
+    <AssemblyVersion>1.2.2.0</AssemblyVersion>
+    <FileVersion>1.2.2.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\AICShared\AICShared.csproj" />
+    <ProjectReference Include="..\AICModPayload\AICModPayload.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,9 +29,13 @@
   </ItemGroup>
 
   <Target Name="CopyPayload" BeforeTargets="BeforeBuild">
-    <Copy SourceFiles="..\AICModPayload\bin\$(Configuration)\netstandard2.1\AICModPayload.dll"
+    <PropertyGroup>
+      <PayloadSourcePath Condition="Exists('..\AICModPayload\bin\$(Configuration)\netstandard2.1\AICModPayload.dll')">..\AICModPayload\bin\$(Configuration)\netstandard2.1\AICModPayload.dll</PayloadSourcePath>
+      <PayloadSourcePath Condition="'$(PayloadSourcePath)' == '' and Exists('..\AICModPayload\bin\Debug\netstandard2.1\AICModPayload.dll')">..\AICModPayload\bin\Debug\netstandard2.1\AICModPayload.dll</PayloadSourcePath>
+    </PropertyGroup>
+    <Copy SourceFiles="$(PayloadSourcePath)"
           DestinationFolder="Resources"
-          SkipUnchangedFiles="true"
-          Condition="Exists('..\AICModPayload\bin\$(Configuration)\netstandard2.1\AICModPayload.dll')" />
+          OverwriteReadOnlyFiles="true"
+          Condition="'$(PayloadSourcePath)' != ''" />
   </Target>
 </Project>

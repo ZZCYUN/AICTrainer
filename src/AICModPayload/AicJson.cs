@@ -103,5 +103,29 @@ namespace AICMod
             sb.Append("]}");
             return sb.ToString();
         }
+
+        public static string EnemyList(IList<EnemyEntryDto> enemies)
+        {
+            var sb = new StringBuilder();
+            sb.Append("{\"Enemies\":[");
+            if (enemies != null)
+            {
+                for (int i = 0; i < enemies.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    var e = enemies[i];
+                    sb.Append("{\"Id\":").Append(e.Id)
+                      .Append(",\"Key\":").Append(Str(e.Key))
+                      .Append(",\"Name\":").Append(Str(e.Name))
+                      .Append(",\"Category\":").Append(Str(e.Category))
+                      .Append(",\"CategoryZh\":").Append(Str(e.CategoryZh))
+                      .Append(",\"DefaultHp\":").Append(e.DefaultHp)
+                      .Append(",\"DefaultMp\":").Append(e.DefaultMp)
+                      .Append('}');
+                }
+            }
+            sb.Append("]}");
+            return sb.ToString();
+        }
     }
 }

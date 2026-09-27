@@ -3,10 +3,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using AICShared;
 using m2d;
 using nel;
+using nel.smnp;
 using UnityEngine;
 using XX;
 
@@ -27,6 +29,11 @@ namespace AICMod
             IpcServer.Instance.OnActionReceived += act =>
             {
                 IncomingActions.Enqueue(act);
+            };
+            IpcServer.Instance.OnClientConnected += () =>
+            {
+                _hasSentMapList = false;
+                _hasSentEnemyList = false;
             };
         }
 
@@ -451,6 +458,12 @@ namespace AICMod
                             SendMapList();
                         }
 
+                        if (!_hasSentEnemyList)
+                        {
+                            _hasSentEnemyList = true;
+                            SendEnemyList();
+                        }
+
                         state.Hp = (int)pr.get_hp();
                         state.MaxHp = (int)pr.get_maxhp();
                         state.Mp = (int)pr.get_mp();
@@ -582,6 +595,17 @@ namespace AICMod
                             int level = Mathf.Clamp(act.IntParam2, 1, 99);
                             int seconds = act.IntParam3;
                             ApplyEffect(act.IntParam, level, seconds);
+                        }
+                        break;
+
+                    case "GetEnemyList":
+                        SendEnemyList();
+                        break;
+
+                    case "SummonEnemy":
+                        if (!string.IsNullOrEmpty(act.StringParam))
+                        {
+                            SummonEnemy(act.StringParam);
                         }
                         break;
 
@@ -1021,6 +1045,7 @@ namespace AICMod
         private static MapListDto? _cachedMapListDto;
         private static Dictionary<string, string>? _cachedZhNames;
         private static bool _hasSentMapList;
+        private static bool _hasSentEnemyList;
 
         public static Dictionary<string, string> LoadChineseMapNames()
         {
@@ -1532,6 +1557,453 @@ namespace AICMod
             catch (Exception ex)
             {
                 Debug.LogWarning("[AICMod] SendEffectList failed: " + ex.Message);
+            }
+        }
+
+        private static int _summonCounter = 0;
+
+        /// <summary>
+        /// 纯动态从游戏引擎遍历魔物全量数据（100% 动态反射/引擎字典遍历，严禁硬编码静态数组）：
+        /// 1. 优先读取 nel.NOD.getBasicDataObject() 官方魔物基础属性字典（Enemies/_nodd.dat）。
+        /// 2. 结合 nel.ENEMYID 枚举确保无遗漏。
+        /// 3. 通过 nel.NDAT.getTypeAndId 校验有效性及实例化类型（NelEnemy 派生类）。
+        /// 4. 通过 nel.NDAT.getEnemyName / TX.getTX 动态提取游戏当前语言（中文）官方本地化名称。
+        /// 5. 动态读取 BasicData 的 maxhp, maxmp, is_machine 等底层属性。
+        /// </summary>
+        public static EnemyListDto GetEnemyList()
+        {
+            var list = new List<EnemyEntryDto>();
+            var seenKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                // 1. 获取官方魔物字典
+                var basicDict = NOD.getBasicDataObject();
+                if (basicDict == null || basicDict.Count == 0)
+                {
+                    try
+                    {
+                        NDAT.prepareData();
+                        basicDict = NOD.getBasicDataObject();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning("[AICMod] NDAT.prepareData failed: " + ex.Message);
+                    }
+                }
+
+                // 收集所有候选魔物 key（合并 NOD 官方数据字典与 ENEMYID 枚举定义）
+                var candidateKeys = new List<string>();
+                if (basicDict != null)
+                {
+                    foreach (var key in basicDict.Keys)
+                    {
+                        if (!string.IsNullOrEmpty(key) && !key.StartsWith("_") && !key.StartsWith("NPC_"))
+                        {
+                            candidateKeys.Add(key);
+                        }
+                    }
+                }
+
+                foreach (var name in Enum.GetNames(typeof(ENEMYID)))
+                {
+                    if (!string.IsNullOrEmpty(name) && !name.StartsWith("_") && !name.StartsWith("NPC_") && !candidateKeys.Contains(name))
+                    {
+                        candidateKeys.Add(name);
+                    }
+                }
+
+                foreach (var key in candidateKeys)
+                {
+                    try
+                    {
+                        if (!seenKeys.Add(key)) continue;
+
+                        var desc = NDAT.getTypeAndId(key);
+                        if (!desc.valid || desc.EnemyType == null) continue;
+
+                        // 过滤复合实体的从属子实体（如森之主囚笼、触手、五足怪头部、水蛭连接体等，它们由父级实体生成时自动装配）
+                        if (typeof(NelEnemyNested).IsAssignableFrom(desc.EnemyType))
+                        {
+                            continue;
+                        }
+
+                        uint id = (uint)desc.id;
+                        ENEMYID eid = (ENEMYID)desc.id;
+
+                        // 动态获取官方本地化中文名称
+                        string name = "";
+                        try
+                        {
+                            name = NDAT.getEnemyName(eid, true);
+                        }
+                        catch { }
+
+                        if (string.IsNullOrWhiteSpace(name) || name == "???")
+                        {
+                            try
+                            {
+                                var tx = TX.getTX("Enemy_" + key, true, true, null);
+                                if (tx != null && !string.IsNullOrWhiteSpace(tx.text))
+                                {
+                                    name = tx.text;
+                                }
+                            }
+                            catch { }
+                        }
+
+                        if (string.IsNullOrWhiteSpace(name) || name == "???")
+                        {
+                            try
+                            {
+                                string baseKey = System.Text.RegularExpressions.Regex.Replace(key, @"(_\d+|_[A-Z]+)$", "");
+                                var tx = TX.getTX("Enemy_" + baseKey, true, true, null);
+                                if (tx != null && !string.IsNullOrWhiteSpace(tx.text))
+                                {
+                                    name = tx.text;
+                                }
+                            }
+                            catch { }
+                        }
+
+                        if (string.IsNullOrWhiteSpace(name) || name == "???")
+                        {
+                            name = key;
+                        }
+
+                        // 动态获取属性与基础数值
+                        bool isMachine = false;
+                        int defaultHp = 0;
+                        int defaultMp = 0;
+
+                        if (basicDict != null && basicDict.TryGetValue(key, out var bd) && bd != null)
+                        {
+                            defaultHp = bd.maxhp;
+                            defaultMp = bd.maxmp;
+                            isMachine = bd.is_machine;
+                        }
+                        else if (basicDict != null)
+                        {
+                            try
+                            {
+                                string eidStr = NDAT.ToStr(eid);
+                                if (!string.IsNullOrEmpty(eidStr) && basicDict.TryGetValue(eidStr, out var bdFallback) && bdFallback != null)
+                                {
+                                    defaultHp = bdFallback.maxhp;
+                                    defaultMp = bdFallback.maxmp;
+                                    isMachine = bdFallback.is_machine;
+                                }
+                            }
+                            catch { }
+                        }
+
+                        string category = "NORMAL";
+                        string categoryZh = "普通魔物";
+                        if (key.StartsWith("BOSS_") || ((uint)eid & 0x80000u) != 0)
+                        {
+                            category = "BOSS";
+                            categoryZh = "首领 BOSS";
+                        }
+                        else if (isMachine || key.StartsWith("MECH") || key.StartsWith("GOLEMTOY") || NDAT.isMechGolem(eid))
+                        {
+                            category = "MACHINE";
+                            categoryZh = "机械魔物";
+                        }
+
+                        list.Add(new EnemyEntryDto
+                        {
+                            Id = id,
+                            Key = key,
+                            Name = name,
+                            Category = category,
+                            CategoryZh = categoryZh,
+                            DefaultHp = defaultHp,
+                            DefaultMp = defaultMp
+                        });
+                    }
+                    catch (Exception itemEx)
+                    {
+                        Debug.LogWarning($"[AICMod] Error reading enemy '{key}': {itemEx.Message}");
+                    }
+                }
+
+                // 排序：首领在前，普通其次，机械在后，同分类按名称自然排序
+                list.Sort((a, b) =>
+                {
+                    int catWeightA = a.Category == "BOSS" ? 0 : (a.Category == "NORMAL" ? 1 : 2);
+                    int catWeightB = b.Category == "BOSS" ? 0 : (b.Category == "NORMAL" ? 1 : 2);
+                    int cw = catWeightA.CompareTo(catWeightB);
+                    if (cw != 0) return cw;
+                    return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                });
+
+                Debug.Log($"[AICMod] Dynamically loaded {list.Count} enemies from game engine.");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] GetEnemyList error: " + ex.Message);
+            }
+
+            return new EnemyListDto { Enemies = list };
+        }
+
+        public static void SendEnemyList()
+        {
+            try
+            {
+                var enemyList = GetEnemyList();
+                IpcServer.Instance.SendEnemyList(enemyList);
+                Debug.Log($"[AICMod] Sent {enemyList.Enemies.Count} enemies to client");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICMod] SendEnemyList failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 在当前关卡地图召唤魔物，支持自定义属性(ENATTR)、狂暴状态(OverDrive)、HP倍率、生成位置与木桩模式
+        /// </summary>
+        private static void ApplyHpMultiplier(NelEnemy en, float multiplier)
+        {
+            if (en == null) return;
+            try
+            {
+                int baseMaxHp = Mathf.Max(1, (int)en.get_maxhp());
+                int scaledMaxHp = Mathf.Max(1, (int)(baseMaxHp * multiplier));
+                ReflectionHelper.SetValue(en, scaledMaxHp, "maxhp");
+                ReflectionHelper.SetValue(en, scaledMaxHp, "hp");
+                en.addF(NelEnemy.FLAG.FINE_HPMP_BAR);
+            }
+            catch { }
+        }
+
+        private static void ApplyDummyMode(NelEnemy en)
+        {
+            if (en == null) return;
+            try
+            {
+                en.cannot_move = true;
+                en.cannot_jump = true;
+                var ai = en.getAI();
+                if (ai != null)
+                {
+                    ai.fnAwakeLogic = ai.fnAwakeDoNothing;
+                    ai.fnSleepLogic = ai.fnAwakeDoNothing;
+                    ai.clearTicket();
+                }
+            }
+            catch { }
+        }
+
+        public static void SummonEnemy(string json)
+        {
+            try
+            {
+                var dto = JsonUtility.FromJson<SummonEnemyDto>(json);
+                if (dto == null || string.IsNullOrEmpty(dto.EnemyKey)) return;
+
+                var nm2d = GetM2D();
+                var pr = GetPlayer();
+                if (nm2d == null || nm2d.curMap == null || pr == null)
+                {
+                    Debug.LogWarning("[AICMod] Cannot summon enemy: player or map not ready");
+                    return;
+                }
+
+                // 规范化 EnemyKey（如 BOSS_NUSI 自动转为 BOSS_NUSI_0，兼容多种输入习惯）
+                string enemyKey = dto.EnemyKey;
+                if (enemyKey.Equals("BOSS_NUSI", StringComparison.OrdinalIgnoreCase))
+                {
+                    enemyKey = "BOSS_NUSI_0";
+                }
+                else
+                {
+                    var testDesc = NDAT.getTypeAndId(enemyKey);
+                    if (!testDesc.valid && NDAT.getTypeAndId(enemyKey + "_0").valid)
+                    {
+                        enemyKey += "_0";
+                    }
+                }
+
+                // 核心关键：预先加载该魔物在当前地图的纹理切片、Pxl 动画和音效资源
+                // 若不加载，会导致 EnemyAnimatorPxl.initS 中 getCurrentCharacter() 为 null 进而抛出 NullReferenceException
+                try
+                {
+                    NDAT.getResources(nm2d, enemyKey);
+                    if (enemyKey.StartsWith("BOSS_NUSI"))
+                    {
+                        NDAT.getResources(nm2d, "BOSS_NUSI_0");
+                        NDAT.getResources(nm2d, "BOSS_NUSI_CAGE");
+                        NDAT.getResources(nm2d, "BOSS_NUSI_TENTACLE");
+                    }
+                }
+                catch (Exception resEx)
+                {
+                    Debug.LogWarning($"[AICMod] NDAT.getResources warning for {enemyKey}: {resEx.Message}");
+                }
+
+                var mp = nm2d.curMap;
+                if (mp == null) return;
+                float basePx = pr.x;
+                float basePy = pr.y;
+                bool isFacingRight = (pr.aim == AIM.R);
+
+                int count = Mathf.Clamp(dto.Count, 1, 20);
+                int successCount = 0;
+
+                for (int i = 0; i < count; i++)
+                {
+                    float targetX = basePx;
+                    float targetY = basePy;
+
+                    float offsetStep = (i - (count - 1) * 0.5f) * 1.2f;
+
+                    switch (dto.PositionMode)
+                    {
+                        case 0: // 身前
+                            targetX = basePx + (isFacingRight ? 2.5f : -2.5f) + offsetStep;
+                            targetY = basePy;
+                            break;
+                        case 1: // 身后
+                            targetX = basePx + (isFacingRight ? -2.5f : 2.5f) + offsetStep;
+                            targetY = basePy;
+                            break;
+                        case 2: // 正上方
+                            targetX = basePx + offsetStep;
+                            targetY = basePy - 3.0f;
+                            break;
+                        case 3: // 身边脚下
+                            targetX = basePx + offsetStep;
+                            targetY = basePy;
+                            break;
+                        case 4: // 周围随机
+                            targetX = basePx + UnityEngine.Random.Range(-3.5f, 3.5f);
+                            targetY = basePy + UnityEngine.Random.Range(-1.5f, 1.5f);
+                            break;
+                        default:
+                            targetX = basePx + (isFacingRight ? 2.5f : -2.5f) + offsetStep;
+                            targetY = basePy;
+                            break;
+                    }
+
+                    // 限制在地图合法边界内
+                    targetX = Mathf.Clamp(targetX, 1.5f, mp!.clms - 1.5f);
+                    targetY = Mathf.Clamp(targetY, 1.5f, mp!.rows - 1.5f);
+
+                    NelEnemy? enemy = null;
+                    try
+                    {
+                        int summonIdx = ++_summonCounter;
+                        enemy = NDAT.createByKey(mp, enemyKey, "-AICSummon-" + enemyKey + "-" + summonIdx);
+                        if (enemy == null)
+                        {
+                            Debug.LogWarning("[AICMod] Failed to create enemy by key: " + enemyKey);
+                            continue;
+                        }
+
+                        if (FEnum<ENEMYID>.TryParse(enemyKey, out var eid))
+                        {
+                            enemy.id = eid;
+                        }
+                        enemy.key = enemyKey + "_" + summonIdx;
+                        enemy.smn_xorsp = NightController.XORSP();
+                        enemy.first_mp_ratio = 1f;
+
+                        // 自定义属性 ENATTR（必须在 assignMover 之前设置，因为 appear() 会基于 nattr 初始化抗性与特效）
+                        if (dto.AttrBits != 0)
+                        {
+                            enemy.nattr = (ENATTR)(dto.AttrBits & 0xFFE7FFFFu);
+                        }
+
+                        // 设置初始位置
+                        enemy.transform.localPosition = new Vector3(mp.map2ux(targetX), mp.map2uy(targetY), 0f);
+
+                        // 注册到地图（执行 enemy.appear(mp)，完成物理刚体、碰撞体与动画挂载）
+                        mp.assignMover(enemy);
+
+                        // 精准定点到目标坐标
+                        enemy.setTo(targetX, targetY);
+
+                        // 觉醒魔物核心召唤状态（安全处理无 Summoner 时的状态与特殊逻辑）
+                        var k = new SmnEnemyKind(enemyKey, 1, -1, 1f, 1f, "")
+                        {
+                            nattr = enemy.nattr
+                        };
+                        enemy.initSummoned(k, is_sudden: true, 0);
+
+                        // 傀儡玩具族系（木偶/三角木马 NelNGolemToy 等）显式保障诞生初始化（Mkb 渲染器、SqMokuba 姿势、cannot_move = false 等）
+                        if (enemy is NelNGolemToy toy)
+                        {
+                            try
+                            {
+                                var mInitBorn0 = typeof(NelNGolemToy).GetMethod("initBorn0", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                                mInitBorn0?.Invoke(toy, new object[] { true });
+                            }
+                            catch (Exception toyEx)
+                            {
+                                Debug.LogWarning("[AICMod] NelNGolemToy initBorn0 invoke warning: " + toyEx.Message);
+                            }
+                        }
+
+                        // 结束召唤进入活跃状态（clearlock_on_summon: true 确保解锁物理命中与重力，复合实体如森之主在此创建囚笼与触手）
+                        enemy.quitSummonAndAppear(true);
+
+                        // 狂暴 OverDrive
+                        if (dto.IsOverDrive && enemy.getOdManager() != null)
+                        {
+                            enemy.initOverDrive(false, true);
+                            enemy.getAI()?.RemF(NAI.FLAG.OVERDRIVED);
+                        }
+
+                        // 生命值倍率（含复合魔物的所有子实体级联设置）
+                        if (dto.HpMultiplier > 0.01f && Math.Abs(dto.HpMultiplier - 1.0f) > 0.01f)
+                        {
+                            ApplyHpMultiplier(enemy, dto.HpMultiplier);
+                            if (enemy.ANested != null)
+                            {
+                                foreach (var child in enemy.ANested)
+                                {
+                                    if (child != null) ApplyHpMultiplier(child, dto.HpMultiplier);
+                                }
+                            }
+                        }
+
+                        // 木桩模式（含复合魔物的所有子实体级联设置）
+                        if (dto.IsDummy)
+                        {
+                            ApplyDummyMode(enemy);
+                            if (enemy.ANested != null)
+                            {
+                                foreach (var child in enemy.ANested)
+                                {
+                                    if (child != null) ApplyDummyMode(child);
+                                }
+                            }
+                        }
+
+                        successCount++;
+                    }
+                    catch (Exception itemEx)
+                    {
+                        Debug.LogError($"[AICMod] Failed to initialize summoned enemy #{i + 1} ({enemyKey}): {itemEx}");
+                        if (enemy != null && mp != null)
+                        {
+                            try
+                            {
+                                mp.removeMover(enemy);
+                                UnityEngine.Object.Destroy(enemy.gameObject);
+                            }
+                            catch { }
+                        }
+                    }
+                }
+
+                Debug.Log($"[AICMod] Successfully summoned {successCount}/{count}x {enemyKey} (OD: {dto.IsOverDrive}, Attr: 0x{dto.AttrBits:X}, HP Mult: {dto.HpMultiplier})");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[AICMod] SummonEnemy error: " + ex);
             }
         }
 

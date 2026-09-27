@@ -30,6 +30,7 @@ namespace AICTrainer.Services
         public event Action<System.Collections.Generic.List<MapEntryDto>>? OnMapListReceived;
         public event Action<System.Collections.Generic.List<ItemEntryDto>>? OnItemListReceived;
         public event Action<System.Collections.Generic.List<EffectEntryDto>>? OnEffectListReceived;
+        public event Action<System.Collections.Generic.List<EnemyEntryDto>>? OnEnemyListReceived;
         public event Action? OnConnected;
         public event Action? OnDisconnected;
 
@@ -182,6 +183,17 @@ namespace AICTrainer.Services
             SendAction("ApplyEffect", intParam: serId, intParam2: level, intParam3: seconds);
         }
 
+        public void RequestEnemyList()
+        {
+            SendAction("GetEnemyList");
+        }
+
+        public void SummonEnemy(SummonEnemyDto dto)
+        {
+            string json = JsonSerializer.Serialize(dto, JsonOptions);
+            SendAction("SummonEnemy", stringParam: json);
+        }
+
         public void DropCane()
         {
             SendAction("drop_cane");
@@ -236,6 +248,14 @@ namespace AICTrainer.Services
                                 if (effectList != null && effectList.Effects != null)
                                 {
                                     OnEffectListReceived?.Invoke(effectList.Effects);
+                                }
+                            }
+                            else if (msg != null && msg.Type == "EnemyList")
+                            {
+                                var enemyList = JsonSerializer.Deserialize<EnemyListDto>(msg.JsonData ?? "", JsonOptions);
+                                if (enemyList != null && enemyList.Enemies != null)
+                                {
+                                    OnEnemyListReceived?.Invoke(enemyList.Enemies);
                                 }
                             }
                         }

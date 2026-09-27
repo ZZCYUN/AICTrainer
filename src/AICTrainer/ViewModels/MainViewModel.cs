@@ -128,6 +128,7 @@ namespace AICTrainer.ViewModels
             OpenMapSelectCommand = new RelayCommand(OpenMapSelectDialog);
             OpenItemGetCommand = new RelayCommand(OpenItemGetDialog);
             OpenEffectGetCommand = new RelayCommand(OpenEffectGetDialog);
+            OpenSummonEnemyCommand = new RelayCommand(OpenSummonEnemyDialog);
             ToggleFavCommand = new RelayCommand<string>(key => ToggleFavorite(key));
 
             // 单次更改数值动作命令
@@ -247,6 +248,14 @@ namespace AICTrainer.ViewModels
                 });
             };
 
+            Client.OnEnemyListReceived += enemies =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    AllEnemies = enemies ?? new List<EnemyEntryDto>();
+                });
+            };
+
             Client.OnDisconnected += () =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
@@ -350,6 +359,7 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
                 OnPropertyChanged(nameof(ItemGetButtonVis));
                 OnPropertyChanged(nameof(EffectGetButtonVis));
+                OnPropertyChanged(nameof(SummonEnemyButtonVis));
                 OnPropertyChanged(nameof(CanDropCane));
                 OnPropertyChanged(nameof(CanRecallCane));
             }
@@ -365,6 +375,7 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
                 OnPropertyChanged(nameof(ItemGetButtonVis));
                 OnPropertyChanged(nameof(EffectGetButtonVis));
+                OnPropertyChanged(nameof(SummonEnemyButtonVis));
                 OnPropertyChanged(nameof(CanDropCane));
                 OnPropertyChanged(nameof(CanRecallCane));
             }
@@ -378,6 +389,7 @@ namespace AICTrainer.ViewModels
         public Visibility ChangeMapButtonVis => IsInMap ? Visibility.Visible : Visibility.Collapsed;
         public Visibility ItemGetButtonVis => IsInMap ? Visibility.Visible : Visibility.Collapsed;
         public Visibility EffectGetButtonVis => IsInMap ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility SummonEnemyButtonVis => IsInMap ? Visibility.Visible : Visibility.Collapsed;
 
         public string StatusText { get => _statusText; set { _statusText = value; OnPropertyChanged(); } }
         public string StatusColor { get => _statusColor; set { _statusColor = value; OnPropertyChanged(); } }
@@ -392,6 +404,7 @@ namespace AICTrainer.ViewModels
                 OnPropertyChanged(nameof(ChangeMapButtonVis));
                 OnPropertyChanged(nameof(ItemGetButtonVis));
                 OnPropertyChanged(nameof(EffectGetButtonVis));
+                OnPropertyChanged(nameof(SummonEnemyButtonVis));
                 OnPropertyChanged(nameof(CanDropCane));
                 OnPropertyChanged(nameof(CanRecallCane));
             }
@@ -416,6 +429,17 @@ namespace AICTrainer.ViewModels
             set
             {
                 _allEffects = value ?? new List<EffectEntryDto>();
+                OnPropertyChanged();
+            }
+        }
+
+        private List<EnemyEntryDto> _allEnemies = new List<EnemyEntryDto>();
+        public List<EnemyEntryDto> AllEnemies
+        {
+            get => _allEnemies;
+            set
+            {
+                _allEnemies = value ?? new List<EnemyEntryDto>();
                 OnPropertyChanged();
             }
         }
@@ -1617,6 +1641,7 @@ namespace AICTrainer.ViewModels
         public ICommand OpenMapSelectCommand { get; }
         public ICommand OpenItemGetCommand { get; }
         public ICommand OpenEffectGetCommand { get; }
+        public ICommand OpenSummonEnemyCommand { get; }
         public ICommand ToggleFavCommand { get; }
 
         public ICommand ApplyHpCommand { get; }
@@ -1902,6 +1927,30 @@ namespace AICTrainer.ViewModels
         {
             if (serId < 0) return;
             Client.ApplyEffect(serId, level, seconds);
+        }
+
+        public void OpenSummonEnemyDialog()
+        {
+            if (!IsGameReady || string.IsNullOrEmpty(CurrentMapText) || CurrentMapText == "未在游戏中" || CurrentMapText == "标题画面 / 菜单" || CurrentMapText == "关卡载入中")
+            {
+                MessageBox.Show("请先载入游戏存档并进入关卡地图后再召唤魔物！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // 每次打开都向 MOD 端请求最新魔物列表（ENEMYID 全量 + 游戏内中文名）
+            Client.RequestEnemyList();
+
+            var dlg = new AICTrainer.Views.SummonEnemyDialog(this)
+            {
+                Owner = Application.Current.MainWindow
+            };
+            dlg.ShowDialog();
+        }
+
+        public void ExecuteSummonEnemy(SummonEnemyDto dto)
+        {
+            if (dto == null || string.IsNullOrEmpty(dto.EnemyKey)) return;
+            Client.SummonEnemy(dto);
         }
 
         public List<MapEntryDto> FallbackLoadGameMaps()
