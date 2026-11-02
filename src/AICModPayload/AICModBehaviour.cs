@@ -2057,6 +2057,43 @@ namespace AICMod
             return null;
         }
 
+        /// <summary>
+        /// 兼容不同版本（0.30g/0.30h 的 2 参数与 0.30i 的 3 参数）的 M2SerItem.LevelCheck
+        /// </summary>
+        private static MethodInfo? _miLevelCheck3;
+        private static MethodInfo? _miLevelCheck2;
+        private static bool _miLevelCheckInit;
+
+        public static bool SafeLevelCheck(M2SerItem? item, int addLevel, int maxLevel, bool force = false)
+        {
+            if (item == null) return false;
+            try
+            {
+                if (!_miLevelCheckInit)
+                {
+                    _miLevelCheck3 = typeof(M2SerItem).GetMethod("LevelCheck", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
+                        new[] { typeof(int), typeof(int), typeof(bool) }, null);
+                    _miLevelCheck2 = typeof(M2SerItem).GetMethod("LevelCheck", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
+                        new[] { typeof(int), typeof(int) }, null);
+                    _miLevelCheckInit = true;
+                }
+
+                if (_miLevelCheck3 != null)
+                {
+                    return (bool)_miLevelCheck3.Invoke(item, new object[] { addLevel, maxLevel, force })!;
+                }
+                if (_miLevelCheck2 != null)
+                {
+                    return (bool)_miLevelCheck2.Invoke(item, new object[] { addLevel, maxLevel })!;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[AICMod] SafeLevelCheck error: {ex}");
+            }
+            return false;
+        }
+
         public static void ApplyEffect(int serId, int level, int seconds)
         {
             try
@@ -2080,7 +2117,7 @@ namespace AICMod
                     // 阈值型效果需多次累积 level_count 才会升到目标等级，循环抬级直到达到
                     for (int i = 0; i < 300 && item.level < target; i++)
                     {
-                        item.LevelCheck(1, maxLevel);
+                        SafeLevelCheck(item, 1, maxLevel);
                     }
                 }
             }

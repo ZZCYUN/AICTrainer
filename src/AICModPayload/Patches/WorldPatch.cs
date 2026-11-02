@@ -264,7 +264,7 @@ namespace AICMod.Patches
             if (__instance.GetWmi(Mp) == null)
             {
                 string? s = Mp.Meta != null ? Mp.Meta.GetS("wholemap_pos") : null;
-                if (TX.noe(s))
+                if (string.IsNullOrEmpty(s))
                 {
                     __instance.CurMap = Mp;
                     __instance.CurPosition = default;
@@ -283,9 +283,9 @@ namespace AICMod.Patches
             {
                 var nm2d = M2DBase.Instance as NelM2DBase;
                 var targetMap = SrcMp ?? nm2d?.curMap;
-                if (targetMap != null && TX.isStart(jump_key, "!"))
+                if (targetMap != null && jump_key != null && jump_key.StartsWith("!"))
                 {
-                    string label = TX.slice(jump_key, 1);
+                    string label = jump_key.Length > 1 ? jump_key.Substring(1) : "";
                     if (targetMap.getLabelPoint(label) == null)
                     {
                         var lp = targetMap.getLabelPoint("WarpTo")
